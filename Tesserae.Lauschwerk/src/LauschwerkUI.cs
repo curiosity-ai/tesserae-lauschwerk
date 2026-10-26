@@ -37,6 +37,12 @@ namespace Tesserae.Lauschwerk
         /// <summary>A scrolling waveform of live audio: an agent input's packets, a track, or samples you feed it.</summary>
         public static LiveWaveform LiveWaveform() => new LiveWaveform();
 
+        /// <summary>
+        /// The listening overlay: a panel over the interface with the sound as bars, and optionally the words as they are heard.
+        /// <see cref="ListeningOverlay.Open"/> shows it.
+        /// </summary>
+        public static ListeningOverlay ListeningOverlay() => new ListeningOverlay();
+
         /// <summary>A dot that lights while someone speaks.</summary>
         public static SpeechIndicator SpeechIndicator() => new SpeechIndicator();
 
