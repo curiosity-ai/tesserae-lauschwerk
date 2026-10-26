@@ -85,7 +85,7 @@ r.ToWav(); // Blob
 | `VoiceprintEnrollment()` | read a text aloud, get a voiceprint; `.RememberIn(key)` keeps it |
 | `AudioFileProcessor()` | pick or drop a recording: before/after waveforms with speech and wakes, playable, downloadable |
 | `ModelPreloader(LauschwerkUsage.Call)` | a settings row that downloads a usage's models ahead of time |
-| `LevelMeter()`, `Waveform(clip)`, `SpeechIndicator()`, `ModeBadge()` | the pieces the panels are made of |
+| `LevelMeter()`, `Waveform(clip)`, `LiveWaveform()`, `SpeechIndicator()`, `ModeBadge()` | the pieces the panels are made of; `LiveWaveform` scrolls live audio (`Bind(agentInput)`, `Track(track)`, `Feed(samples)`) |
 
 They draw with Tesserae's `--tss-*` tokens, so they follow light and dark mode and the custom themes.
 
