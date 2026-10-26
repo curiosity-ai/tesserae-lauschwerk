@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 
 import { build } from 'esbuild'
 
@@ -66,7 +67,8 @@ await build({
 await build({ ...common, entryPoints: [join(root, 'src/cli.ts')], outfile: join(dist, 'cli.js'), platform: 'node', banner: { js: '#!/usr/bin/env node' } })
 copyFileSync(wasm, join(dist, 'lauschwerk-engine.wasm'))
 
-execFileSync('npx', ['tsc', '-p', 'tsconfig.build.json'], { cwd: root, stdio: 'inherit' })
+// tsc through node, not npx: on Windows npx is a .cmd, which execFileSync cannot start without a shell
+execFileSync(process.execPath, [createRequire(import.meta.url).resolve('typescript/bin/tsc'), '-p', 'tsconfig.build.json'], { cwd: root, stdio: 'inherit' })
 
 const kb = (p) => `${(readFileSync(p).length / 1024).toFixed(0)} KB`
 console.log(`index.js ${kb(join(dist, 'index.js'))}, worker ${kb(join(dist, 'lauschwerk-worker.js'))}, worklet ${kb(join(dist, 'lauschwerk-worklet.js'))}, wasm ${kb(join(dist, 'lauschwerk-engine.wasm'))}`)

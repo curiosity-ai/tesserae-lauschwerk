@@ -53,7 +53,8 @@ steps:
       rustc --version
     workingDirectory: '$(Build.SourcesDirectory)/sdk/'
 
-# cargo -> lauschwerk-engine.wasm, esbuild -> the SDK's dist/ (upstream's scripts/build.mjs, unchanged).
+# cargo -> lauschwerk-engine.wasm, esbuild -> the SDK's dist/ (upstream's scripts/build.mjs, with tsc run
+# through node: npx is a .cmd here, which the script's execFileSync cannot start).
 # A step of its own so it shows in the log; the BuildLauschwerkSdk MSBuild target then skips it as up to date.
 - task: CmdLine@2
   displayName: 'build lauschwerk from source (Rust to WebAssembly, web SDK)'

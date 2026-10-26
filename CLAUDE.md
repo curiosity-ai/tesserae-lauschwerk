@@ -111,7 +111,7 @@ runs both before it packs.
 **Diffing against upstream.** `scripts/diff-upstream.sh` copies the kept parts of `.reference/` to a
 temporary folder, renames them with `scripts/upstream-names.py`, and diffs that against `sdk/`, so it
 lists only the changes we made: today `crates/engine/README.md`, the SDK's `package.json`,
-`scripts/models.mjs`, `src/loader.ts`, `src/manifest.ts`, `test/browser/network.spec.ts`, and the expected
+`scripts/build.mjs` (`tsc` run through node, not `npx`, which Windows cannot spawn), `scripts/models.mjs`, `src/loader.ts`, `src/manifest.ts`, `test/browser/network.spec.ts`, and the expected
 `Cargo.toml`, `Cargo.lock`, `models.json` and golden hashes. Taking a newer upstream: replace
 `.reference/`, run it with `-u`, re-copy, `python3 scripts/upstream-names.py tree <copied folder>`, carry
 our changes over.
