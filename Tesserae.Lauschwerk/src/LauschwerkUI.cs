@@ -34,6 +34,9 @@ namespace Tesserae.Lauschwerk
         /// <summary>A recording drawn with its speech and wakes, playable.</summary>
         public static Waveform Waveform(AudioClip clip = null) => new Waveform(clip);
 
+        /// <summary>A scrolling waveform of live audio: an agent input's packets, a track, or samples you feed it.</summary>
+        public static LiveWaveform LiveWaveform() => new LiveWaveform();
+
         /// <summary>A dot that lights while someone speaks.</summary>
         public static SpeechIndicator SpeechIndicator() => new SpeechIndicator();
 

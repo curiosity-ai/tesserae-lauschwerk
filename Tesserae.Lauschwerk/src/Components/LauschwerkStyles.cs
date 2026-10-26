@@ -62,6 +62,9 @@ namespace Tesserae.Lauschwerk
 .tss-lw-speaking.tss-lw-on .tss-lw-dot { background: var(--tss-lw-speech); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tss-lw-speech) 25%, transparent); }
 .tss-lw-waveform { position: relative; width: 100%; height: 96px; border: 1px solid var(--tss-default-border-color); border-radius: 6px; background: var(--tss-default-background-color); overflow: hidden; }
 .tss-lw-waveform canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tss-lw-live { position: relative; width: 100%; height: 96px; border: 1px solid var(--tss-default-border-color); border-radius: 6px; overflow: hidden; }
+.tss-lw-live.tss-lw-live-frameless { border-color: transparent; border-radius: 0; }
+.tss-lw-live canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .tss-lw-takes { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) {
   .tss-lw-meter .tss-lw-meter-fill, .tss-lw-speaking .tss-lw-dot { transition: none; }

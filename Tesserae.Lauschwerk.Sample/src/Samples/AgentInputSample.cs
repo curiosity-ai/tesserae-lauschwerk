@@ -18,11 +18,13 @@ namespace Tesserae.Lauschwerk.Sample
             var packets    = Readout("lw-agent-packets", "0 packets");
             var utterances = VStack().WS().Gap(8.px()).Id("lw-agent-utterances");
             var count      = 0;
+            var live       = LiveWaveform().SetHeight(72.px()).SetSeconds(6).Id("lw-agent-live");
 
             var panel = AgentInputPanel(() => new AgentInputSettings { Near = true })
                .OnStarted(input =>
                 {
                     var agent = (AgentInput)input;
+                    live.Clear().Bind(agent);
                     var n = 0;
                     agent.Audio += _ => { if (++n % 16 == 0) packets.Text = n + " packets"; };
                     agent.Utterance += u =>
@@ -42,13 +44,16 @@ namespace Tesserae.Lauschwerk.Sample
                     Card(VStack().WS().Children(
                         panel,
                         packets.PT(8),
+                        SampleSubTitle("Live audio"),
+                        live.WS(),
                         SampleSubTitle("Utterances"),
                         utterances,
                         SampleHint("Say two sentences with a pause between them: each becomes an utterance you can play back."))).SetTitle("Demo"),
                     Card(CallInputSample.Code(@"var input = await LauschwerkJs.CreateAgentInputAsync(new AgentInputSettings { FarEndManual = true, Format = PcmFormat.Int16, SampleRate = 24000 });
 input.Audio += pcm => socket.send(pcm);                  // continuous
 input.Utterance += u => TranscribeAsync(u.Pcm);         // one per sentence
-input.FarEndActive(true);                               // the agent starts speaking")).SetTitle("Usage")))
+input.FarEndActive(true);                               // the agent starts speaking
+LiveWaveform().Bind(input);                             // a scrolling waveform of the same audio")).SetTitle("Usage")))
                .SeeAlso(typeof(CallInputSample), typeof(ProcessFileSample));
         }
 
