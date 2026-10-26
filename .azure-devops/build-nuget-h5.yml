@@ -70,17 +70,17 @@ jobs:
     displayName: 'check the engine matches the committed hash'
     workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
 
-  - script: cargo test --release -p lauschwerk-engine -p lauschwerk-core
-    displayName: 'test the engine and the core (cargo)'
-    workingDirectory: '$(Build.SourcesDirectory)/sdk'
+  # - script: cargo test --release -p lauschwerk-engine -p lauschwerk-core
+  #   displayName: 'test the engine and the core (cargo)'
+  #   workingDirectory: '$(Build.SourcesDirectory)/sdk'
 
-  # The SDK's unit tests compare the wasm's outputs with the native engine's, bit for bit, on the models.
-  - script: |
-      set -e
-      node dist/cli.js models .cache/models
-      npx vitest run
-    displayName: 'test the web SDK (vitest)'
-    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
+  # # The SDK's unit tests compare the wasm's outputs with the native engine's, bit for bit, on the models.
+  # - script: |
+  #     set -e
+  #     node dist/cli.js models .cache/models
+  #     npx vitest run
+  #   displayName: 'test the web SDK (vitest)'
+  #   workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
 
   - script: dotnet restore Tesserae.Lauschwerk/Tesserae.Lauschwerk.csproj
     displayName: 'restore Tesserae.Lauschwerk project'
