@@ -22,7 +22,7 @@ namespace Tesserae.Lauschwerk.Sample
     /// the models as files, which is also how the browser checks drive the gallery - Chromium's fake
     /// capture device plays one of them as the microphone.
     ///
-    /// The gallery hosts its own models (<c>LauschwerkSelfHostModels</c> in the csproj), so the visitor's
+    /// The models ship in the package and are copied next to the SDK, so the visitor's
     /// browser only ever talks to this site.
     /// </summary>
     internal static class App
@@ -53,8 +53,6 @@ namespace Tesserae.Lauschwerk.Sample
 
         private static void Main()
         {
-            LauschwerkJs.UseSelfHostedModels();
-
             document.body.style.overflow = "hidden";
 
             // Ensure the viewport meta tag is present so that mobile browsers use the device width

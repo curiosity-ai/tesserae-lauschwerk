@@ -17,7 +17,7 @@ namespace Tesserae.Lauschwerk
     {
         private const string DEFAULT_ASSETS_PATH = "assets/js/lauschwerk";
 
-        /// <summary>Where <c>LauschwerkSelfHostModels</c> puts the models (see buildTransitive/Tesserae.Lauschwerk.targets).</summary>
+        /// <summary>Where the models shipped in the package are copied to at build (see buildTransitive/Tesserae.Lauschwerk.targets).</summary>
         public const string SELF_HOSTED_MODELS_PATH = DEFAULT_ASSETS_PATH + "/models";
 
         private static string _assetsPath = DEFAULT_ASSETS_PATH;
@@ -42,28 +42,26 @@ namespace Tesserae.Lauschwerk
         public static string BaseUrl => new URL(_assetsPath, document.baseURI).href.TrimEnd('/');
 
         /// <summary>
-        /// Where the SDK downloads its models from. Null (the default) is Hugging Face, at the revision the
-        /// bundled lauschwerk pins - fine for trying it out, and each user then sends Hugging Face their IP.
-        /// In production host them yourself: <see cref="UseSelfHostedModels"/>, or any URL serving the
-        /// <c>.alk</c> files byte for byte (an SPA fallback page in their place fails the sha256 check).
+        /// Where the SDK loads its models from. The five <c>.alk</c> files ship inside the package and the build
+        /// copies them next to the SDK, so the default is <c>assets/js/lauschwerk/models</c> under <see cref="AssetsPath"/>:
+        /// nothing is downloaded from a third party. Set it to serve them from somewhere else (a CDN, a mirror): any URL
+        /// serving the <c>.alk</c> files byte for byte (an SPA fallback page in their place fails the sha256 check).
+        /// Null restores the default.
         ///
         /// lauschwerk reads this once, when the first model loads: set it before the first input, file or
         /// preload. A later change is ignored by the SDK and raises a <c>config.late</c> diagnostic.
         /// </summary>
         public static string ModelBaseUrl
         {
-            get => _modelBaseUrl;
+            get => _modelBaseUrl ?? new URL(_assetsPath + "/models/", document.baseURI).href;
             set
             {
                 _modelBaseUrl = string.IsNullOrWhiteSpace(value) ? null : new URL(value.TrimEnd('/') + "/", document.baseURI).href;
-                if (IsLoaded && _modelBaseUrl is object) LauschwerkLib.Lauschwerk.configure(new LauschwerkConfig { modelBaseUrl = _modelBaseUrl });
+                if (IsLoaded) LauschwerkLib.Lauschwerk.configure(new LauschwerkConfig { modelBaseUrl = ModelBaseUrl });
             }
         }
 
-        /// <summary>
-        /// Points <see cref="ModelBaseUrl"/> at the models the build copied in with
-        /// <c>&lt;LauschwerkSelfHostModels&gt;true&lt;/LauschwerkSelfHostModels&gt;</c>.
-        /// </summary>
+        /// <summary>Points <see cref="ModelBaseUrl"/> at the packaged models. That is the default; this is for a changed <see cref="AssetsPath"/> or to undo another <see cref="ModelBaseUrl"/>.</summary>
         public static void UseSelfHostedModels(string path = SELF_HOSTED_MODELS_PATH) => ModelBaseUrl = path;
 
         /// <summary>True once the SDK has loaded and <c>window.lauschwerk</c> is safe to call.</summary>
@@ -103,7 +101,7 @@ namespace Tesserae.Lauschwerk
                 throw;
             }
 
-            if (_modelBaseUrl is object) LauschwerkLib.Lauschwerk.configure(new LauschwerkConfig { modelBaseUrl = _modelBaseUrl });
+            LauschwerkLib.Lauschwerk.configure(new LauschwerkConfig { modelBaseUrl = ModelBaseUrl });
 
             var queued = _pendingActions.ToArray();
             _pendingActions.Clear();

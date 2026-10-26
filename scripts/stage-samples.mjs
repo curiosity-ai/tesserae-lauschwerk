@@ -39,10 +39,10 @@ if (!existsSync(join(SOURCE, 'assets/js/lauschwerk/lauschwerk.js'))) {
   process.exit(1);
 }
 
-// The gallery hosts its own models (LauschwerkSelfHostModels in the sample's csproj). Without them every page
-// would fall back to Hugging Face and the visitor's browser would talk to a third party.
+// The models ship in the package and are copied next to the SDK. Without them every page would fail its model
+// download and the visitor's browser would talk to the wrong host.
 if (!existsSync(join(SOURCE, 'assets/js/lauschwerk/models'))) {
-  console.error(`No assets/js/lauschwerk/models in ${SOURCE} - the model self-hosting step did not run.`);
+  console.error(`No assets/js/lauschwerk/models in ${SOURCE} - the model copy did not run.`);
   process.exit(1);
 }
 

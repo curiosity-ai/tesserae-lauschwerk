@@ -13,9 +13,11 @@
  *     lauschwerk.js           the entry Tesserae.Lauschwerk fetches (RequireKind.Module). Ours: imports the
  *                         SDK, points assetBaseUrl at the versioned folder, publishes window.lauschwerk.
  *     version.txt         the bundled lauschwerk version; also MSBuild's Inputs/Outputs marker.
+ *     models/             the five .alk models, from Tesserae.Lauschwerk/models (sha256-checked against
+ *                         sdk/crates/core/models.json); LauschwerkJs.ModelBaseUrl points here by default.
  *     v<version>/         lauschwerk's dist, verbatim: index.js, chunk-*.js, api-*.js, assets-*.js,
  *                         node-*.js, lauschwerk-worker.js, lauschwerk-worklet.js, lauschwerk-engine.wasm, and
- *                         cli.js (the self-hosting model downloader - never served to a page, see
+ *                         cli.js (the Node model downloader - never served to a page, see
  *                         buildTransitive/Tesserae.Lauschwerk.targets).
  *
  * Why a versioned folder. lauschwerk creates its worker with `new Worker(url)` and its worklet with
@@ -83,6 +85,27 @@ lauschwerk.Lauschwerk.configure({ assetBaseUrl: base });
 
 globalThis.lauschwerk = Object.freeze(Object.assign({}, lauschwerk, { version: '${version}', assetBaseUrl: base, engineSha256: '${engineSha256}' }));
 `);
+
+// The models, shipped in the package (Tesserae.Lauschwerk/models) and served from assets/js/lauschwerk/models, which is
+// where LauschwerkJs.ModelBaseUrl points by default. Checked against what the SDK pins, so a stale or corrupt
+// file fails the build rather than every user's first model load.
+const modelsSrc = join(root, 'models');
+const pinned = JSON.parse(readFileSync(join(here, '..', '..', 'sdk', 'crates', 'core', 'models.json'), 'utf8')).models;
+mkdirSync(join(out, 'models'), { recursive: true });
+for (const m of Object.values(pinned)) {
+  const file = join(modelsSrc, m.file);
+  if (!existsSync(file)) {
+    console.error(`models/${m.file} is missing: fetch it from ${m.url} (see sdk/crates/core/models.json).`);
+    process.exit(1);
+  }
+  const data = readFileSync(file);
+  if (data.length !== m.bytes || createHash('sha256').update(data).digest('hex') !== m.sha256) {
+    console.error(`models/${m.file} does not match the size and sha256 pinned in sdk/crates/core/models.json.`);
+    process.exit(1);
+  }
+  cpSync(file, join(out, 'models', m.file));
+  bytes += data.length;
+}
 
 writeFileSync(join(out, 'version.txt'), version + '\n');
 

@@ -39,8 +39,7 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      # Node is a build prerequisite: it runs the web SDK's build (esbuild) and its CLI, which downloads
-      # the models the gallery self-hosts.
+      # Node is a build prerequisite: it runs the web SDK's build (esbuild). The models ship in the repo.
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:

@@ -39,7 +39,7 @@ Tesserae.Lauschwerk/                    the package
   src/Components/                   the Tesserae components (panels, meters, waveform, enrollment...)
   src/LauschwerkUI.cs                   the component factories (using static Tesserae.Lauschwerk.LauschwerkUI)
   build/bundle-lauschwerk.mjs       stages sdk/packages/lauschwerk/dist into assets/js/lauschwerk
-  buildTransitive/*.targets         copies it into a consumer's output; opt-in model self-hosting
+  buildTransitive/*.targets         copies it, models included, into a consumer's output
 Tesserae.Lauschwerk.Sample/             the gallery: a sidebar of features, one page each
   assets/audio/                     the speech fixtures, synthesized by tools/Lauschwerk.TestAudio
 tests/                              Playwright specs (fake microphone = the fixtures), a static server
@@ -155,23 +155,18 @@ named in a single-level glob. The package carries it under `lauschwerk/` and
 `buildTransitive/Tesserae.Lauschwerk.targets` copies it to `assets/js/lauschwerk/` after the build (`cli.js`
 excluded - it is the Node model downloader, never something a page loads).
 
-### Models: self-hosted by an opt-in MSBuild property
+### Models: shipped in the package
 
-The models (the `.alk` weights) are not in the package. Each entry of `sdk/crates/core/models.json` has our
-`name` and `file` (what the model is called here, and what a voiceprint or a word is bound to:
-`name@sha256-prefix`), its `bytes` and `sha256`, and the `url` the default download reads - upstream's
-Hugging Face repository at a pinned revision, the one place their name is spelled in our code. The `.alk`
-format and its magic bytes (`ALK\0`) are part of the weights and keep their name; the sha256 is checked
-on every download, whoever serves the file. By default the SDK downloads from `url` and keeps the files in
-Cache Storage. `LauschwerkSelfHostModels=true` makes the targets run the SDK's own `cli.js models <dir> [names]` - from the staged `v<version>/` folder,
-where it finds the engine, worker and worklet it also copies - into `obj/lauschwerk-models/<version>/`, once
-per version and model set (a marker file is touched only after it succeeded), and copy the `.alk` files
-to `assets/js/lauschwerk/models/`. The host then calls `LauschwerkJs.UseSelfHostedModels()` before the first
-input. The gallery does both.
-
-**`_LauschwerkSelfHostModels` runs `AfterTargets="_CopyLauschwerkAssets"`, not through `CallTarget`.** A called
-target does not see properties the caller set while running: the first version ran
-`node "v/cli.js"`, the version property empty. One that runs after the caller does see them.
+The models (the `.alk` weights, 7.5 MB) are committed under `Tesserae.Lauschwerk/models/` and travel in the package.
+Each entry of `sdk/crates/core/models.json` has our `name` and `file` (what the model is called here, and what a
+voiceprint or a word is bound to: `name@sha256-prefix`), its `bytes` and `sha256`, and the `url` they were fetched
+from - upstream's Hugging Face repository at a pinned revision, the one place their name is spelled in our code.
+The `.alk` format and its magic bytes (`ALK\0`) are part of the weights and keep their name.
+`build/bundle-lauschwerk.mjs` checks every file against the pinned size and sha256 (a mismatch fails the build) and
+stages them in `assets/js/lauschwerk/models/`; the targets copy them with the rest. `LauschwerkJs.ModelBaseUrl`
+defaults to that folder, so the SDK never goes to Hugging Face; set it to serve them from a CDN. **Taking a newer
+upstream:** replace the files from the new `url`s, update `models.json`, and the bundle script will say if one does
+not match. The SDK still verifies sha256 on every load, whoever serves the file.
 
 A host that serves the models with `Cache-Control: no-store` still works, but Chromium reports the
 streamed downloads as `net::ERR_ABORTED` in DevTools and to Playwright's `requestfailed`. Found through
@@ -297,7 +292,7 @@ pieces they are made of.
   variable is `buildVersion`, passed as `/p:Version` - never name a pipeline variable after an MSBuild
   property, since every variable is also an environment variable and MSBuild reads those as properties
   (Tesserae's `packageVersion` incident).
-- **GitHub Pages:** `.github/workflows/pages.yml` builds the gallery in Release (models self-hosted) and
+- **GitHub Pages:** `.github/workflows/pages.yml` builds the gallery in Release (models shipped) and
   publishes `_site/` to `gh-pages`. Everything in the site is relative, so it works under a sub-path.
 
 ## Naming

@@ -89,7 +89,7 @@ jobs:
     displayName: 'Build Tesserae.Lauschwerk'
 
   # Not packed, but the only thing that exercises Tesserae.Lauschwerk.targets copying lauschwerk (and the
-  # self-hosted models) into an application's output - and the site the browser checks below run on.
+  # packaged models) into an application's output - and the site the browser checks below run on.
   - script: dotnet build Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj -c $(buildConfiguration)
     displayName: 'Build Tesserae.Lauschwerk.Sample'
 
