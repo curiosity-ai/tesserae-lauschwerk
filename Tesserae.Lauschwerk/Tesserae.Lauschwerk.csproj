@@ -1,0 +1,88 @@
+<Project Sdk="Transpose.Build.Target/26.10.6986">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefineConstants>TRANSPOSE</DefineConstants>
+    <AssemblyName>Tesserae.Lauschwerk</AssemblyName>
+    <RootNamespace>Tesserae.Lauschwerk</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <SkipResourcesExtraction>true</SkipResourcesExtraction>
+    <MinifyLocalVariables>true</MinifyLocalVariables>
+    <!-- A library, not a runnable site: tps emits a chunk map and defers the chunks, so an
+         application that references this package but never opens a microphone never fetches them. -->
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Transpose.BCL" Version="26.10.7126" />
+    <PackageReference Include="Transpose.Core" Version="26.10.6989" />
+    <PackageReference Include="Tesserae" Version="2026.10.72651" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>(c) Copyright 2026 Curiosity GmbH - all right reserved</Copyright>
+    <Company>Curiosity GmbH</Company>
+    <Authors>Curiosity GmbH</Authors>
+    <PackageProjectUrl>https://github.com/theolivenbaum/lauschwerk</PackageProjectUrl>
+    <PackageId>Tesserae.Lauschwerk</PackageId>
+    <Description>Tesserae.Lauschwerk is a Tesserae (Transpose C# to JavaScript) wrapper around the lauschwerk web SDK: on-device voice isolation, voice activity, wake words and voiceprints in the browser, as typed C# and ready-made Tesserae components.</Description>
+    <PackageTags>transpose, HTML, UI, components, voice, speech, audio, vad, wake-word, voiceprint, noise-suppression, webrtc, tesserae, lauschwerk</PackageTags>
+    <NoWarn>1701;1702;1591</NoWarn>
+    <!-- lauschwerk's code and weights are Apache-2.0, and this wrapper follows it. -->
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="buildTransitive/Tesserae.Lauschwerk.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <!--
+    The web SDK is built from source, from sdk/ (the Rust engine and core, their wasm module and the
+    TypeScript SDK - see sdk/README.md):
+
+      BuildLauschwerkSdk   cargo -> lauschwerk-engine.wasm (wasm32, SIMD, the toolchain pinned in
+                           sdk/rust-toolchain.toml), then esbuild -> sdk/packages/lauschwerk/dist
+      BundleLauschwerk     stages that dist into assets/js/lauschwerk (build/bundle-lauschwerk.mjs)
+
+    Both are Inputs/Outputs-guarded: an unchanged source tree skips them. Nothing built is committed:
+    dist/, target/ and assets/ are gitignored.
+  -->
+  <PropertyGroup>
+    <LauschwerkBundleDir>$(MSBuildProjectDirectory)/assets/js/lauschwerk</LauschwerkBundleDir>
+    <LauschwerkSdkDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', 'sdk'))</LauschwerkSdkDir>
+    <LauschwerkSdkPackageDir>$(LauschwerkSdkDir)packages/lauschwerk</LauschwerkSdkPackageDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_LauschwerkSdkInputs Include="$(LauschwerkSdkDir)crates/**/*.rs;$(LauschwerkSdkDir)crates/**/Cargo.toml;$(LauschwerkSdkDir)crates/core/models.json;$(LauschwerkSdkDir)Cargo.toml;$(LauschwerkSdkDir)rust-toolchain.toml" />
+    <_LauschwerkSdkInputs Include="$(LauschwerkSdkPackageDir)/src/**/*.ts;$(LauschwerkSdkPackageDir)/scripts/*.mjs;$(LauschwerkSdkPackageDir)/package.json" />
+  </ItemGroup>
+
+  <Target Name="BuildLauschwerkSdk" Inputs="@(_LauschwerkSdkInputs)" Outputs="$(LauschwerkSdkPackageDir)/dist/lauschwerk-engine.wasm">
+    <Exec Command="cargo --version" ConsoleToMSBuild="true" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="_LauschwerkCargoExit" />
+    </Exec>
+    <Error Condition="'$(_LauschwerkCargoExit)' != '0'" Text="Tesserae.Lauschwerk: the web SDK is built from source and needs Rust - install rustup; it installs the toolchain sdk/rust-toolchain.toml pins, wasm32 target included." />
+    <Exec Condition="!Exists('$(LauschwerkSdkPackageDir)/node_modules')" Command="npm ci --no-audit --no-fund" WorkingDirectory="$(LauschwerkSdkPackageDir)" />
+    <Exec Command="node scripts/build.mjs" WorkingDirectory="$(LauschwerkSdkPackageDir)" />
+  </Target>
+
+  <Target Name="BundleLauschwerk" BeforeTargets="BeforeBuild" DependsOnTargets="BuildLauschwerkSdk" Inputs="build/bundle-lauschwerk.mjs;$(LauschwerkSdkPackageDir)/dist/lauschwerk-engine.wasm" Outputs="$(LauschwerkBundleDir)/version.txt">
+    <Exec Command="node build/bundle-lauschwerk.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!--
+    Resolved in a target rather than a static ItemGroup so the glob runs after BundleLauschwerk has
+    produced the files, and hooked on _GetPackageFiles, where NuGet collects Pack="true" items
+    (GenerateNuspec is too late - see tesserae-pdf's csproj for the same note).
+  -->
+  <Target Name="IncludeLauschwerkInPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="BundleLauschwerk">
+    <ItemGroup>
+      <None Include="$(LauschwerkBundleDir)/**" Pack="true" PackagePath="lauschwerk/" />
+    </ItemGroup>
+  </Target>
+</Project>

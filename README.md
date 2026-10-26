@@ -1,157 +1,66 @@
-<p align="center">
-  <a href="https://alkove.ai">
-    <img alt="Alkove" src=".github/assets/alkove.png" width="273" height="76">
-  </a>
-</p>
+# Lauschwerk
 
-<h3 align="center">Listens to one voice. Answers to any name.</h3>
+On-device voice input for the browser, and for [Tesserae](https://github.com/curiosity-ai/tesserae)
+applications: keep only the user's voice, tell when they speak, hear any typed wake word, recognize a
+voice. A Rust engine compiled to WebAssembly, a TypeScript web SDK around it, and a Tesserae package with
+typed C# and ready-made components. No server, no key.
 
-<p align="center">
-  Voice isolation, wake words, voice activity and voiceprints, on the device.<br>
-  In the browser, in Python and on Android. No server, no key, no telemetry.
-</p>
+*Lauschen*, to listen closely - the counterpart of [Voxwerk](https://github.com/curiosity-ai/voxwerk),
+which speaks.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/alkove"><img alt="npm" src="https://img.shields.io/npm/v/alkove?color=e0702c&label=npm&cacheSeconds=3600"></a>
-  <a href="https://pypi.org/project/alkove/"><img alt="PyPI" src="https://img.shields.io/pypi/v/alkove?color=e0702c&label=pypi&cacheSeconds=3600"></a>
-  <a href="https://alkove.ai/docs/start/android/"><img alt="Android" src="https://img.shields.io/badge/android-v0.3.2-e0702c"></a>
-  <a href="./LICENSE"><img alt="Apache-2.0, code and weights" src="https://img.shields.io/badge/code%20%2B%20weights-Apache--2.0-13254a"></a>
-  <a href="https://huggingface.co/alkove-ai"><img alt="Models on Hugging Face" src="https://img.shields.io/badge/models-Hugging%20Face-13254a"></a>
-</p>
-
-<p align="center">
-  <a href="https://alkove.ai/#demo"><b>Try it on your voice</b></a> ·
-  <a href="https://alkove.ai/docs/">Docs</a> ·
-  <a href="https://alkove.ai/docs/start/android/">Android</a> ·
-  <a href="./integrations/livekit">LiveKit Agents</a> ·
-  <a href="./integrations/pipecat">Pipecat</a>
-</p>
-
-<br>
-
-<a href="https://alkove.ai/#demo">
-  <img alt="The five models on one scene: Lex reads the typed wake word, Timbre learns the voiceprint, Spot wakes only on your voice, Focus keeps only you, Cue opens and closes your turns" src=".github/assets/alkove.webp" width="800">
-</a>
-
-<p align="center"><sub>The five models on one scene: a typed wake word, your voice only, your turns only. <a href="https://alkove.ai/#demo">Try it on your voice</a>.</sub></p>
-
-## Why Alkove
-
-- **The other voices stay out.** On meetings recorded on headset microphones (AMI), words from other people reaching the transcript drop from 17 per minute to 0.5. Denoisers let 19 or more through.
-- **Far voices stay out without a voiceprint.** With `near`, a colleague across the room or a video on another device opens no turn: it goes by loudness against the user's own voice, nothing biometric.
-- **Any word is a wake word.** Type it in one of 7 languages: no training, no recording session. 80 % recall at one false alarm per hour.
-- **Fewer false barge-ins.** Behind Focus, Cue starts on music 4× less often than Silero VAD.
-- **Small enough for a phone.** Five models under 8 MB together, Focus at 1.1 MB, an engine of 141 KB (brotli).
-- **Open.** Code and weights under Apache-2.0, the engine is our own, in Rust. Every number above comes with its datasets and protocol in [`bench/`](./bench).
-
-## Quick start
-
-### In the browser
-
-```sh
-npm install alkove
-```
-
-```ts
-import { createCallInput } from 'alkove'
-
-const input = await createCallInput()
-pc.addTrack(input.track) // only the user's voice goes out
-```
-
-```ts
-import { createWakeListener, Spot } from 'alkove'
-
-const word = await Spot.compile('Hey Nova', { lang: 'en' })
-const wake = await createWakeListener({ words: [word] })
-wake.on('wake', ({ audio }) => startListening(audio))
-```
-
-Voice agents, files, Node and the primitives: [the `alkove` package](./packages/alkove).
-
-### On Android
-
-```kotlin
-// settings.gradle.kts: repositories { maven("https://maven.alkove.ai") }
-implementation("ai.alkove:alkove:0.3.2")
-```
-
-```kotlin
-val input = AgentInput.start(context, AgentOptions(output = Output(Format.S16, rate = 24000))) { chunk ->
-    socket.send(chunk) // only the user's voice goes out
-}
-```
-
-Wake words, files, a LiveKit room (`ai.alkove:alkove-livekit`): [the Android quick start](https://alkove.ai/docs/start/android/).
-
-### LiveKit Agents
-
-```sh
-pip install livekit-plugins-alkove
-```
-
-```python
-from livekit.plugins import alkove
-
-session = AgentSession(vad=alkove.VAD.load(), ...)
-await session.start(
-    agent,
-    room=ctx.room,
-    room_options=room_io.RoomOptions(
-        audio_input=room_io.AudioInputOptions(noise_cancellation=alkove.Focus()),
-    ),
-)
-```
-
-### Pipecat
-
-```sh
-pip install pipecat-alkove
-```
-
-```python
-from pipecat_alkove import AlkoveFilter, AlkoveVADAnalyzer
-
-params = TransportParams(audio_in_enabled=True, audio_in_filter=AlkoveFilter())
-vad = AlkoveVADAnalyzer()
-```
-
-Python on its own: `pip install alkove`, see [the Python package](./python).
-
-## The five models
-
-| Model | What it does | Size |
-|---|---|---|
-| [Focus](https://alkove.ai/docs/models/focus/) | Keeps the closest voice, or one person's voice from their print, and removes noise, music and other voices | 1.1 MB |
-| [Cue](https://alkove.ai/docs/models/cue/) | Tells when someone speaks, every 30 ms | 1.1 MB |
-| [Spot](https://alkove.ai/docs/models/spot/) | Hears any word you type, in 7 languages, with no training | 2.8 MB |
-| [Lex](https://alkove.ai/docs/models/lex/) | Turns a written word into its likely pronunciations | 1.8 MB |
-| [Timbre](https://alkove.ai/docs/models/timbre/) | Makes voiceprints and compares them | 0.74 MB |
-
-Weights on [Hugging Face](https://huggingface.co/alkove-ai), downloaded once, checked by sha256 and cached. In production, [host them yourself](https://alkove.ai/docs/guides/self-hosting/).
-
-## Read this first
-
-- **A near microphone, one person.** A phone, a headset, a laptop in front of you. Alkove keeps the closest voice and removes the others: on a room microphone in the middle of a meeting table, it removes the other participants too.
-- **16 kHz voice.** The output carries speech up to 8 kHz: HD voice, not full band.
-- **Preview (0.x).** A minor version may break the API until 1.0, a patch never does. See the [changelog](./CHANGELOG.md).
-
-## In this repository
+## What is in it
 
 | | |
 |---|---|
-| [`packages/alkove`](./packages/alkove) | the web library (npm) |
-| [`python`](./python) | the Python package (PyPI) |
-| [`android`](./android) | the Android library and its LiveKit plugin ([maven.alkove.ai](https://maven.alkove.ai)) |
-| [`integrations/livekit`](./integrations/livekit) | Focus and Cue for LiveKit Agents |
-| [`integrations/pipecat`](./integrations/pipecat) | Focus and Cue for Pipecat |
-| [`crates/engine`](./crates/engine) | the inference engine and the `.alk` format |
-| [`crates/core`](./crates/core) | the features, written once in Rust for every package |
-| [`bench`](./bench) | every benchmark number, with its datasets and protocol |
-| [`examples`](./examples) | two plain HTML pages on the built package |
+| [`sdk`](./sdk) | Lauschwerk itself: the Rust engine and core, built to WebAssembly, and the TypeScript web SDK ([its README](./sdk/README.md)) |
+| [`Tesserae.Lauschwerk`](./Tesserae.Lauschwerk) | the NuGet package: typed C# over the SDK, and Tesserae components ([its README](./Tesserae.Lauschwerk/README.md)) |
+| [`Tesserae.Lauschwerk.Sample`](./Tesserae.Lauschwerk.Sample) | the gallery: one page per feature |
+| [`tests`](./tests) | Playwright checks - Chromium plays synthesized speech as the microphone |
+| [`tools/Lauschwerk.TestAudio`](./tools/Lauschwerk.TestAudio) | synthesizes that speech with Voxwerk |
 
-Building from source: [CONTRIBUTING.md](./CONTRIBUTING.md).
+## Quick look
 
-## License
+```csharp
+using Tesserae.Lauschwerk;
+using static Tesserae.Lauschwerk.LauschwerkUI;
 
-Apache-2.0, code and weights. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+LauschwerkJs.UseSelfHostedModels();                   // with <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
+
+// a call: only the user's voice goes out
+var call = await LauschwerkJs.CreateCallInputAsync(new CallInputSettings { Learn = true });
+pc.addTrack(call.Track);
+
+// any word is a wake word
+var word = await LauschwerkJs.CompileWordAsync("Hey Nova");
+var wake = await LauschwerkJs.CreateWakeListenerAsync(new WakeListenerSettings(word));
+wake.Wake += e => console.log("woke", e.Score);
+
+// or the ready-made components
+VStack().Children(CallInputPanel(), WakeWordPanel("Hey Nova"), VoiceprintEnrollment(), AudioFileProcessor());
+```
+
+## Build, run, test
+
+```bash
+dotnet tool update --global Transpose.Compiler
+dotnet build Tesserae.Lauschwerk.slnx                 # needs Rust (rustup) and node: builds the wasm and the SDK, downloads the models once
+
+cd Tesserae.Lauschwerk.Sample/bin/Debug/netstandard2.0/tps && dotnet serve --port 5000
+
+cd tests && npm ci && npx playwright test             # the gallery must be built first
+```
+
+[CLAUDE.md](./CLAUDE.md) has how it is put together and why; [TODO.md](./TODO.md) what is left. Packages
+are versioned `yy.M.<build>` by [the pipeline](./.azure-devops/build-nuget-h5.yml).
+
+## Origin and license
+
+Lauschwerk began as a fork of [alkove](https://github.com/alkove-ai/alkove) by Eddy Bordi, and its engine,
+core, web SDK and model weights are that project's work, under Apache-2.0. This repository renamed it, builds
+it from source, and adds the Tesserae package, the gallery and the tests. Upstream as forked is kept,
+unchanged and unbuilt, in [`.reference/`](./.reference), so `scripts/diff-upstream.sh` can show what we
+changed. The models are still downloaded from upstream's Hugging Face repositories (or self-hosted from
+them at build time).
+
+Apache-2.0, like upstream. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The license grants no right to
+upstream's name or logo, which this project does not use.

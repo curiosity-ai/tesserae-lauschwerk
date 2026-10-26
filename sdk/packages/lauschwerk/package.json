@@ -1,0 +1,69 @@
+{
+  "name": "lauschwerk",
+  "private": true,
+  "version": "0.3.2",
+  "description": "On-device voice input for the web: keep the user's voice, detect speech and wake words. Built by Tesserae.Lauschwerk; not published.",
+  "keywords": [
+    "voice",
+    "speech",
+    "audio",
+    "noise-suppression",
+    "noise-cancellation",
+    "voice-isolation",
+    "speech-enhancement",
+    "target-speaker-extraction",
+    "voice-activity-detection",
+    "vad",
+    "wake-word",
+    "hotword",
+    "keyword-spotting",
+    "speaker-verification",
+    "voiceprint",
+    "grapheme-to-phoneme",
+    "webrtc",
+    "voice-agent",
+    "on-device",
+    "browser",
+    "webassembly",
+    "wasm"
+  ],
+  "homepage": "https://github.com/theolivenbaum/lauschwerk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theolivenbaum/lauschwerk.git",
+    "directory": "sdk/packages/lauschwerk"
+  },
+  "bugs": "https://github.com/theolivenbaum/lauschwerk/issues",
+  "author": "Curiosity GmbH",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "bin": {
+    "lauschwerk": "dist/cli.js"
+  }
+}
