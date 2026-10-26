@@ -1,9 +1,6 @@
 variables:
   buildConfiguration: 'Release'
 
-# Shaped like Tesserae's own pipeline (tesserae/.azure-devops/build-nuget-h5.yml): one pipeline on the
-# default branch that versions, builds and pushes. Here the build starts from source - the Rust engine to
-# WebAssembly and the web SDK in sdk/ - and is tested before anything is pushed.
 trigger:
 - main
 
