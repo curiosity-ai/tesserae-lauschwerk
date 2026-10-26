@@ -1,0 +1,24 @@
+# The part of alkove this repository builds: the engine, the core and their wasm module. Copied from
+# .reference/ (kept there unchanged, so `diff -r .reference/crates sdk/crates` shows our changes against
+# upstream). Python and Android are not built here, so their crates are not members.
+[workspace]
+members = ["crates/engine", "crates/core", "crates/wasm"]
+resolver = "2"
+
+[workspace.package]
+version = "0.3.2"
+edition = "2021"
+rust-version = "1.88"
+license = "Apache-2.0"
+repository = "https://github.com/alkove-ai/alkove"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# the core runs light loops around the engine: built for size
+[profile.release.package.alkove-core]
+opt-level = "s"
