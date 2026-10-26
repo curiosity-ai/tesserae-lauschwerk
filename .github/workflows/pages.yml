@@ -1,0 +1,77 @@
+name: Publish sample to GitHub Pages
+
+# Stages the alkove SDK, compiles Tesserae.Alkove.Sample in Release (which also downloads the models
+# it self-hosts), and publishes the Transpose output folder to the `gh-pages` branch. Enable Pages with
+# Settings -> Pages -> "Deploy from a branch" -> branch `gh-pages` / root.
+#
+# The Transpose output folder *is* the site: every reference in index.html is relative, and the alkove
+# entry resolves its worker, worklet and engine from its own import.meta.url, so the sub-path Pages
+# serves from needs nothing rewritten. Pages is HTTPS, which the microphone needs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Tesserae.Alkove/**'
+      - 'Tesserae.Alkove.Sample/**'
+      - 'Tesserae.Alkove.slnx'
+      - 'scripts/stage-samples.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: 10.x
+
+      # Node is a build prerequisite: alkove is staged from the pinned npm package, and its own CLI
+      # downloads the models the gallery self-hosts.
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Tesserae.Alkove/package-lock.json
+
+      - name: Install the Transpose compiler
+        run: |
+          dotnet tool update --global Transpose.Compiler
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # npm ci rather than the BundleAlkove target's npm install: exactly what package-lock.json pins.
+      # BundleAlkove is Inputs/Outputs-guarded on version.txt, so the build below skips it.
+      - name: Stage alkove
+        run: |
+          npm ci --no-audit --no-fund
+          npm run bundle
+        working-directory: Tesserae.Alkove
+
+      # Release: the chunked module build every consumer ships.
+      - name: Build the sample (Release)
+        run: dotnet build Tesserae.Alkove.Sample/Tesserae.Alkove.Sample.csproj -c Release
+
+      - name: Stage the site
+        run: node scripts/stage-samples.mjs
+
+      - name: Publish _site/ to gh-pages
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          enable_jekyll: false
+          commit_message: 'Deploy sample for ${{ github.sha }}'

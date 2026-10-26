@@ -1,0 +1,96 @@
+variables:
+  buildConfiguration: 'Release'
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - Tesserae.Alkove/*
+      - .azure-devops/build-nuget-transpose.yml
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- checkout: self
+  submodules: true
+  persistCredentials: true
+
+- task: PowerShell@2
+  displayName: 'Create CalVer Version'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $dottedDate = (Get-Date).ToString("yy.M")
+      $buildID = $($env:BUILD_BUILDID)
+      $modBuildID = [int]$buildID % 65536  # ensure fits in int16
+      $newTargetVersion = "$dottedDate.$modBuildID"
+      Write-Host "##vso[task.setvariable variable=targetVersion;]$newTargetVersion"
+      Write-Host "Updated targetVersion to '$newTargetVersion'"
+
+- task: UseDotNet@2
+  displayName: 'Use .NET 10.0 sdk'
+  inputs:
+    packageType: sdk
+    version: 10.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- task: NuGetToolInstaller@1
+
+- task: CmdLine@2
+  displayName: 'install Transpose compiler'
+  inputs:
+    script: 'dotnet tool update --global Transpose.Compiler'
+
+- task: NodeTool@0
+  displayName: 'Use Node.js 22.x'
+  inputs:
+    versionSpec: '22.x'
+
+# There is no global-tool compiler for Transpose: the Transpose.Build.Target SDK
+# runs the `tps` compiler as part of the normal `dotnet build` below.
+
+# Stage the alkove SDK from the pinned npm package into what the package ships (also runs as an MSBuild target
+# during the build, but doing it explicitly here makes the produced artifact visible in the logs).
+# alkove is not vendored in this repo - it is restored from the pinned npm package every build.
+- task: CmdLine@2
+  displayName: 'stage alkove'
+  inputs:
+    script: |
+      npm install --no-audit --no-fund
+      npm run bundle
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove/'
+
+- task: CmdLine@2
+  displayName: 'restore Tesserae.Alkove project'
+  inputs:
+    script: 'dotnet restore $(Build.SourcesDirectory)\Tesserae.Alkove\Tesserae.Alkove.csproj'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove/'
+
+- task: CmdLine@2
+  displayName: 'Build Tesserae.Alkove'
+  inputs:
+    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Alkove\Tesserae.Alkove.csproj -c $(buildConfiguration) /p:Version=$(targetVersion)'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove/'
+
+# The sample is not packed, but building it proves the package is consumable end to end - it is the
+# only thing that exercises Tesserae.Alkove.targets copying alkove into an app's output.
+- task: CmdLine@2
+  displayName: 'Build Tesserae.Alkove.Sample'
+  inputs:
+    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Alkove.Sample\Tesserae.Alkove.Sample.csproj -c $(buildConfiguration)'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove.Sample/'
+
+- task: CmdLine@2
+  inputs:
+    script: 'dir $(Build.SourcesDirectory)\Tesserae.Alkove\bin\ /S'
+
+- task: NuGetCommand@2
+  displayName: 'push Tesserae.Alkove to nuget'
+  inputs:
+    command: 'push'
+    packagesToPush: '**/*/Tesserae.Alkove.$(targetVersion).nupkg' # The package name comes from the PackageID, not project name
+    nuGetFeedType: 'external'
+    publishFeedCredentials: 'nuget-curiosity-org'

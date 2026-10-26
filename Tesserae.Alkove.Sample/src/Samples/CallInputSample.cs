@@ -35,9 +35,9 @@ namespace Tesserae.Alkove.Sample
                         TextBlock("A call input opens the microphone and gives back a MediaStreamTrack carrying the user's voice only - other voices, music and noise removed by Focus, gated between sentences by Cue, at a steady level. Put that track on the RTCPeerConnection instead of the microphone's."),
                         TextBlock("The models load in the background: until they run, the raw microphone goes out at the same delay, and the mode says why. Nothing ever fails because of a model - only a missing or refused microphone fails the input.").PT(8))).SetTitle("Overview"),
                     Card(VStack().WS().Children(
-                        HStack().Wrap().Gap(16.px()).Children(
-                            Label("Learn my voiceprint").Inline().AutoWidth().SetContent(learn),
-                            Label("Ignore far voices (near)").Inline().AutoWidth().SetContent(near)),
+                        HStack().Wrap().AlignItemsCenter().Gap(16.px()).Children(
+                            HStack().AlignItemsCenter().Gap(6.px()).Children(learn, TextBlock("Learn my voiceprint").Small()),
+                            HStack().AlignItemsCenter().Gap(6.px()).Children(near, TextBlock("Ignore far voices (near)").Small())),
                         panel.PT(8),
                         SampleSubTitle("Events"),
                         log,

@@ -59,10 +59,12 @@ Write("wake.wav", Concat(Silence(1.5), heyNova[0], Silence(0.8), weather, Silenc
 // speech.wav - two sentences apart, for Cue: two phrases, so two speechstart/speechend pairs.
 Write("speech.wav", Concat(Silence(1.0), weather, Silence(1.2), remind, Silence(1.0)));
 
-// mix.wav - the user close by, someone else further away (12 dB down) talking over them, and a
-// noise floor: the before of Focus's before/after.
-var userLine = Concat(Silence(0.5), remind, Silence(0.4), weather, Silence(0.5));
-Write("mix.wav", Mix(userLine, (Gain(meeting, -12), (int)(1.2 * Rate)), (Noise(userLine.Length / (double)Rate, -38), 0)));
+// mix.wav - the user close by and someone else further away (6 dB down) talking in the user's pause,
+// over a noise floor: the before of Focus's before/after. Focus keeps the user's two sentences and
+// blanks the other voice, so the difference is visible on a waveform as well as audible.
+var userLine = Concat(Silence(0.5), remind, Silence(4.6), weather, Silence(0.5));
+var otherAt = (int)((0.5 + remind.Length / (double)Rate + 0.2) * Rate);
+Write("mix.wav", Mix(userLine, (Gain(meeting, -6), otherAt), (Noise(userLine.Length / (double)Rate, -38), 0)));
 
 // enroll.wav - several seconds of the user reading, enough for a voiceprint (alkove wants about 6 s).
 Write("enroll.wav", Concat(Silence(0.5), reading, Silence(0.5)));

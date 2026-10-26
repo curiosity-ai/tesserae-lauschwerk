@@ -45,10 +45,10 @@ namespace Tesserae.Alkove
             _download.Disabled();
 
             _content = VStack().WS().Gap(8.px()).Class("tss-alkove-file").Children(
+                _file.W(320.px()).MaxWidth(100.percent()),
                 HStack().WS().Wrap().AlignItemsCenter().Gap(16.px()).Children(
-                    _file.W(320.px()),
-                    Label("Focus").Inline().AutoWidth().SetContent(_focus),
-                    Label("Cue").Inline().AutoWidth().SetContent(_cue),
+                    Option("Focus", _focus),
+                    Option("Cue", _cue),
                     _words,
                     Button("Run again").SetIcon(UIcons.Refresh).OnClick(() => RunAsync().FireAndForget())),
                 _progress.WS(),
@@ -64,6 +64,10 @@ namespace Tesserae.Alkove
 
             _status.Text = "Pick a recording - nothing is uploaded.";
         }
+
+        // A label and its toggle as one fixed-size unit: an inline Label in a wrapping row stretches to the
+        // row's width under some themes and pushes its toggle to the far edge.
+        private static IComponent Option(string text, Toggle toggle) => HStack().AlignItemsCenter().Gap(6.px()).NoShrink().Children(TextBlock(text).SemiBold().Small(), toggle);
 
         /// <summary>The last result, or null.</summary>
         public ProcessedAudio Result => _result;

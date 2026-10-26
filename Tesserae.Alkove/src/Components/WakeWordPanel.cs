@@ -141,7 +141,8 @@ namespace Tesserae.Alkove
             // certain. The meter puts -6 at empty and the threshold at 80%, so a wake is a bar past 80.
             var threshold = _context == WakeContext.Anywhere ? _word0.Thresholds.anywhere : _word0.Thresholds.pause;
             var closeness = Math.Max(0, (score + 6) / (threshold + 6) * 0.8);
-            _closeness.SetFraction(closeness, score.ToString("0.00"));
+            // Spot reports a large negative sentinel while it hears nothing at all.
+            _closeness.SetFraction(closeness, score < -50 ? "-" : score.ToString("0.00"));
         }
 
         private void Wake(WakeEvent e)

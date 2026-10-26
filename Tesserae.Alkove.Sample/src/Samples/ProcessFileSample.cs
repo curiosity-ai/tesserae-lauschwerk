@@ -18,6 +18,23 @@ namespace Tesserae.Alkove.Sample
             var processor = AudioFileProcessor();
             processor.Render().id = "alk-file-processor";
 
+            // Without a print Focus keeps the closest voice - and a voice talking alone is the closest, so
+            // mix.wav's other speaker, who talks in the user's pause, passes. With the user's print (made
+            // here from enroll.wav) only the user is kept: that stretch drops by some 40 dB.
+            var onlyUser = Toggle().Id("alk-only-user");
+            onlyUser.OnChange(async (t, e) =>
+            {
+                if (onlyUser.IsChecked)
+                {
+                    var timbre = await Timbre.CreateAsync();
+                    var enroll = await AlkoveJs.DecodeAsync(await VerifyVoicesSample.FetchAsync(ENROLL_WAV));
+                    processor.WithVoiceprint(await timbre.EmbedAsync(enroll));
+                }
+                else processor.WithVoiceprint(null);
+
+                await processor.RunAsync();
+            });
+
             var recordings = HStack().WS().Wrap().Gap(8.px());
             foreach (var (label, url) in RECORDINGS)
             {
@@ -37,8 +54,9 @@ namespace Tesserae.Alkove.Sample
                     Card(VStack().WS().Children(
                         TextBlock("Try one of the gallery's recordings, or pick a file of your own:").Small().Secondary(),
                         recordings.PB(8),
+                        HStack().AlignItemsCenter().Gap(8.px()).PB(8).Children(onlyUser, TextBlock("Keep only the user's voice (a voiceprint made from \"The user reading\")").Small()),
                         processor,
-                        SampleHint("Before is the recording as it was; after is what Focus kept. The shading is where Cue heard speech, a line where Spot heard the word. Click a waveform to play it."))).SetTitle("Demo"),
+                        SampleHint("Before is the recording as it was; after is what Focus kept. The shading is where Cue heard speech, a line where Spot heard the word. Click a waveform to play it. In \"A voice over another voice\", the other speaker talks in the user's pause: without a print Focus keeps them (they are the closest voice while they talk alone), with the user's print it drops them."))).SetTitle("Demo"),
                     Card(CallInputSample.Code(@"var r = await AlkoveJs.ProcessAsync(file, new ProcessSettings { Focus = true, Cue = true, Words = new[] { word } });
 r.Audio;   // AudioClip, 16 kHz, processed
 r.Speech;  // SpeechSpan[]

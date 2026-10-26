@@ -22,7 +22,7 @@ namespace Tesserae.Alkove.Sample
         /// <summary>Two sentences a second apart - two phrases for Cue.</summary>
         public const string SPEECH_WAV = AUDIO + "speech.wav";
 
-        /// <summary>The user close by, someone else 12 dB further away talking over them, and a noise floor.</summary>
+        /// <summary>The user close by, someone else 6 dB further away talking in the user's pause, and a noise floor.</summary>
         public const string MIX_WAV = AUDIO + "mix.wav";
 
         /// <summary>Ten seconds of the user reading - enough for a voiceprint.</summary>

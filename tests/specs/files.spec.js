@@ -48,4 +48,17 @@ test.describe('Process File', () => {
     expect((await download).suggestedFilename()).toBe('mix.alkove.wav');
     expect(problems).toEqual([]);
   });
+
+  test("with the user's voiceprint, Focus drops the other speaker", async ({ page, problems }) => {
+    await open(page, 'Process File');
+    const processor = page.locator('#alk-file-processor');
+    await button(page.locator('.tss-card'), 'A voice over another voice and noise').click();
+    // Without a print the other speaker, alone in the user's pause, is the closest voice: one long phrase.
+    await expect(processor).toHaveAttribute('data-phrases', '1');
+
+    await page.locator('#alk-only-user').click();
+    // With it, only the user's two sentences are left.
+    await expect(processor).toHaveAttribute('data-phrases', '2');
+    expect(problems).toEqual([]);
+  });
 });
