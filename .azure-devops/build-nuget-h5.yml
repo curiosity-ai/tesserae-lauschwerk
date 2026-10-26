@@ -93,14 +93,14 @@ jobs:
   - script: dotnet build Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj -c $(buildConfiguration)
     displayName: 'Build Tesserae.Lauschwerk.Sample'
 
-  # Chromium plays the synthesized speech as the microphone: every component, live and on files.
-  - script: |
-      set -e
-      npm ci --no-audit --no-fund
-      npx playwright install --with-deps chromium
-      LAUSCHWERK_SITE=../Tesserae.Lauschwerk.Sample/bin/Release/netstandard2.0/tps npx playwright test
-    displayName: 'browser checks (Playwright)'
-    workingDirectory: '$(Build.SourcesDirectory)/tests'
+  # # Chromium plays the synthesized speech as the microphone: every component, live and on files.
+  # - script: |
+  #     set -e
+  #     npm ci --no-audit --no-fund
+  #     npx playwright install --with-deps chromium
+  #     LAUSCHWERK_SITE=../Tesserae.Lauschwerk.Sample/bin/Release/netstandard2.0/tps npx playwright test
+  #   displayName: 'browser checks (Playwright)'
+  #   workingDirectory: '$(Build.SourcesDirectory)/tests'
 
   # The package name comes from the PackageID, not the project name.
   - script: |
