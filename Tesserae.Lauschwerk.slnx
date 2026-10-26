@@ -1,0 +1,14 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <Platform Name="Any CPU" />
+  </Configurations>
+  <Project Path="Tesserae.Lauschwerk/Tesserae.Lauschwerk.csproj" />
+  <Project Path="Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj" />
+  <Folder Name="/DevOps/">
+    <File Path=".azure-devops/build-nuget-h5.yml" />
+    <File Path=".github/workflows/pages.yml" />
+    <File Path="scripts/stage-samples.mjs" />
+  </Folder>
+</Solution>

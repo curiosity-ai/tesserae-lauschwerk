@@ -1,10 +1,10 @@
-//! cargo run --release --example lex -- alkove-lex-1-preview.alk [rounds]: time per word of Lex's beam search, on words of the seven languages.
+//! cargo run --release --example lex -- lauschwerk-lex-1-preview.alk [rounds]: time per word of Lex's beam search, on words of the seven languages.
 
 use std::sync::Arc;
 use std::time::Instant;
 
-use alkove_core::lex::{Lex, BEAMS};
-use alkove_engine::Model;
+use lauschwerk_core::lex::{Lex, BEAMS};
+use lauschwerk_engine::Model;
 
 const WORDS: [(&str, &[&str]); 7] = [
     ("fr", &["amendement", "composition", "Haut conseil", "aujourd'hui", "porte-monnaie", "Camille", "santé", "œuvre", "Noël", "deuxième", "ok luciole"]),

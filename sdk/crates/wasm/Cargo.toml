@@ -1,6 +1,6 @@
 [package]
-name = "alkove-wasm"
-description = "C ABI of the Alkove engine and core: the wasm module of the web SDK, and a native library for other languages"
+name = "lauschwerk-wasm"
+description = "C ABI of the Lauschwerk engine and core: the wasm module of the web SDK, and a native library for other languages"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,8 +12,8 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-alkove-engine = { path = "../engine" }
-alkove-core = { path = "../core" }
+lauschwerk-engine = { path = "../engine" }
+lauschwerk-core = { path = "../core" }
 
 [features]
 # exports for the tests that compare the core to the TypeScript it replaces, piece by piece

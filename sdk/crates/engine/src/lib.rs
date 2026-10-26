@@ -1,4 +1,4 @@
-//! Alkove's inference engine: a plan fixed offline (the `.alk` file) run over one arena, no allocation in `run`.
+//! Lauschwerk's inference engine: a plan fixed offline (the `.alk` file) run over one arena, no allocation in `run`.
 
 mod format;
 mod gemm;

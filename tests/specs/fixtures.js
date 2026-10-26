@@ -2,7 +2,7 @@ import { test as base, expect, chromium } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-const audio = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'Tesserae.Alkove.Sample', 'assets', 'audio');
+const audio = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'Tesserae.Lauschwerk.Sample', 'assets', 'audio');
 
 // Console lines that are not failures. Every page is checked against this list after its test.
 const EXPECTED_NOISE = [/favicon\.ico/];

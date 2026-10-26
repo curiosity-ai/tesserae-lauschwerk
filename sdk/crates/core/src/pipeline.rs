@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::Model;
+use lauschwerk_engine::Model;
 
 use crate::chain::{Chain, ChainEvent, ChainOptions};
 use crate::learner::{rms, Learner, LEVEL, RESEND};

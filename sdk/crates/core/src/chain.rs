@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::Model;
+use lauschwerk_engine::Model;
 
 use crate::cue::{Cue, SpeechEvent, SpeechParams, SpeechTracker};
 use crate::focus::Focus;

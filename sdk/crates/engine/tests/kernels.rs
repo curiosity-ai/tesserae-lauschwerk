@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 const NONE: u32 = u32::MAX;
 
@@ -112,7 +112,7 @@ fn linear_as_plain_sums() {
                 for kk in 0..k {
                     acc += x[i * k + kk] * wv[kk * n + j];
                 }
-                let want = alkove_engine::math::sigmoid(acc + bias[j]);
+                let want = lauschwerk_engine::math::sigmoid(acc + bias[j]);
                 assert_eq!(got[i * n + j].to_bits(), want.to_bits(), "{m}x{k}x{n} at {i},{j}");
             }
         }
@@ -272,7 +272,7 @@ fn frame_counts_past_2_31_refused() {
     s.input_mut("x").unwrap()[..3].copy_from_slice(&[1.0, 2.0, 3.0]);
     s.run();
     assert_eq!(s.output("y").unwrap()[..3], [1.0, 2.0, 3.0]);
-    assert_eq!(s.set_len(1001), Err(alkove_engine::Error::Length(1001)));
+    assert_eq!(s.set_len(1001), Err(lauschwerk_engine::Error::Length(1001)));
     // 1000 + 2^31 - 1 + 2^31 - 1 frames: cast to 32 bits, 998 would pass the load's check and 0 frames would run 2^32 - 2
     assert!(plan(0x7fff_ffff, 0x7fff_ffff).is_err());
 }
@@ -294,7 +294,7 @@ fn plans_share_the_weights() {
     s.input_mut("x").unwrap().copy_from_slice(&[5.0]);
     s.run();
     assert_eq!(s.output("y").unwrap(), [10.0, 15.0]);
-    assert_eq!(Session::of(model, 2).err(), Some(alkove_engine::Error::Plan(2)));
+    assert_eq!(Session::of(model, 2).err(), Some(lauschwerk_engine::Error::Plan(2)));
     assert!(Model::load(&p.file(&[("a", 4, (0, 2), (2, 1), &dot), ("a", 4, (0, 2), (2, 1), &dot)])).is_err());
     assert!(Model::load(&p.file(&[])).is_err());
 }
@@ -307,6 +307,6 @@ fn an_arena_out_of_reach_is_an_error() {
     let model = Arc::new(Model::load(&p.bytes(n, (0, 1), (1, 1))).expect("load"));
     match Session::new(model) {
         Ok(_) => assert_eq!(usize::BITS, 64),
-        Err(e) => assert_eq!(e, alkove_engine::Error::Memory(n)),
+        Err(e) => assert_eq!(e, lauschwerk_engine::Error::Memory(n)),
     }
 }

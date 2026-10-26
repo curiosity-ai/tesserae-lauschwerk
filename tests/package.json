@@ -1,7 +1,7 @@
 {
-  "name": "tesserae-alkove-tests",
+  "name": "tesserae-lauschwerk-tests",
   "private": true,
-  "description": "Browser checks for the Tesserae.Alkove sample gallery: Chromium plays the synthesized recordings as the microphone.",
+  "description": "Browser checks for the Tesserae.Lauschwerk sample gallery: Chromium plays the synthesized recordings as the microphone.",
   "type": "module",
   "scripts": {
     "test": "playwright test"

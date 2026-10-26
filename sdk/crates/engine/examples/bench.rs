@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

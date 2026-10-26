@@ -230,6 +230,8 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
+# ...except the web SDK built from source, which is ours (sdk/packages/lauschwerk)
+!sdk/packages/*
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files
@@ -435,9 +437,9 @@ Tesserae.Pdf/assets/
 _site/
 
 .idea
-# Node / the staged alkove SDK (regenerated from the pinned npm package on every build)
+# Node / the staged web SDK (regenerated from sdk/ on every build)
 node_modules/
-Tesserae.Alkove/assets/
+Tesserae.Lauschwerk/assets/
 
 # The staged GitHub Pages site and local Playwright output
 _site/
@@ -447,5 +449,5 @@ tests/node_modules/
 
 # The Rust/wasm build and the web SDK built from sdk/
 sdk/target/
-sdk/packages/alkove/dist/
-sdk/packages/alkove/node_modules/
+sdk/packages/lauschwerk/dist/
+sdk/packages/lauschwerk/node_modules/

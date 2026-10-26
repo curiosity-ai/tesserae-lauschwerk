@@ -1,5 +1,5 @@
-use alkove_core::{Chain, ChainEvent, ChainOptions, SpeechEvent, SpeechParams, Why};
-use alkove_engine::Model;
+use lauschwerk_core::{Chain, ChainEvent, ChainOptions, SpeechEvent, SpeechParams, Why};
+use lauschwerk_engine::Model;
 
 use crate::{fail, shared};
 
@@ -144,9 +144,9 @@ pub unsafe extern "C" fn alk_chain_get(c: *mut ChainHandle, what: u32) -> f64 {
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use alkove_core::lex::Lex;
-use alkove_core::spot::{Context, Enroller, Listener, Spot, Word, ENROLL};
-use alkove_core::{Error, Models, ProcessOptions, Processor, Value};
+use lauschwerk_core::lex::Lex;
+use lauschwerk_core::spot::{Context, Enroller, Listener, Spot, Word, ENROLL};
+use lauschwerk_core::{Error, Models, ProcessOptions, Processor, Value};
 
 thread_local! {
     static VALUE_IN: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
@@ -186,10 +186,10 @@ pub(crate) fn answer(r: Result<Value, Error>) -> i32 {
         let kind = match e {
             Error::Type(_) => "TypeError",
             Error::Range(_) => "RangeError",
-            Error::Alkove(..) => "AlkoveError",
+            Error::Lauschwerk(..) => "LauschwerkError",
             _ => "Error",
         };
-        let code = if let Error::Alkove(c, _) = &e { Value::from(*c) } else { Value::Null };
+        let code = if let Error::Lauschwerk(c, _) = &e { Value::from(*c) } else { Value::Null };
         Value::Obj(vec![("kind".into(), kind.into()), ("code".into(), code), ("message".into(), e.to_string().into()), ("error".into(), true.into())])
     });
     let failed = v.get("error") == Some(&Value::Bool(true));
@@ -243,9 +243,9 @@ pub unsafe extern "C" fn alk_lex_phonemize(l: *mut Lex) -> i32 {
         let lang = v.get("lang").and_then(Value::str).unwrap_or("").to_string();
         let mut out = Vec::new();
         for t in v.get("texts").and_then(Value::arr).unwrap_or(&[]) {
-            let ps = (*l).phonemize(t.str().unwrap_or(""), &lang, alkove_core::lex::BEAMS, |_, _| true)?;
+            let ps = (*l).phonemize(t.str().unwrap_or(""), &lang, lauschwerk_core::lex::BEAMS, |_, _| true)?;
             out.push(Value::Arr(
-                ps.iter().map(|p| alkove_core::value::obj([("ids", p.ids.iter().map(|&i| i as f64).collect::<Vec<_>>().into()), ("ipa", p.ipa.as_str().into()), ("p", p.p.into())])).collect(),
+                ps.iter().map(|p| lauschwerk_core::value::obj([("ids", p.ids.iter().map(|&i| i as f64).collect::<Vec<_>>().into()), ("ipa", p.ipa.as_str().into()), ("p", p.p.into())])).collect(),
             ));
         }
         Ok(Value::Arr(out))
@@ -258,8 +258,8 @@ pub unsafe extern "C" fn alk_compile(l: *mut Lex) -> i32 {
     answer((|| {
         let v = input()?;
         let langs: Vec<String> = v.get("lang").and_then(Value::arr).unwrap_or(&[]).iter().filter_map(|x| x.str().map(str::to_string)).collect();
-        let word = alkove_core::spot::compile(v.get("text").and_then(Value::str).unwrap_or(""), &langs, v.get("chain").and_then(Value::str), l.as_mut())?;
-        Ok(alkove_core::value::obj([("word", word.to_value()), ("warnings", Value::Arr(word.warnings))]))
+        let word = lauschwerk_core::spot::compile(v.get("text").and_then(Value::str).unwrap_or(""), &langs, v.get("chain").and_then(Value::str), l.as_mut())?;
+        Ok(lauschwerk_core::value::obj([("word", word.to_value()), ("warnings", Value::Arr(word.warnings))]))
     })())
 }
 
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn alk_processor_free(p: *mut ProcessorHandle) {
     drop(Box::from_raw(p));
 }
 
-unsafe fn part(h: *mut ProcessorHandle, r: Result<alkove_core::Part, Error>) -> i32 {
+unsafe fn part(h: *mut ProcessorHandle, r: Result<lauschwerk_core::Part, Error>) -> i32 {
     answer(r.map(|mut part| {
         (*h).audio = std::mem::take(&mut part.audio);
         part.to_value()
@@ -315,7 +315,7 @@ pub unsafe extern "C" fn alk_processor_audio_len(p: *mut ProcessorHandle) -> usi
 
 fn words(v: &Value) -> Result<(Vec<Word>, Context), Error> {
     let words = v.get("words").and_then(Value::arr).unwrap_or(&[]).iter().map(Word::of).collect::<Result<Vec<_>, _>>()?;
-    Ok((words, alkove_core::spot::context_of(v.get("context").and_then(Value::str).unwrap_or("anywhere"))))
+    Ok((words, lauschwerk_core::spot::context_of(v.get("context").and_then(Value::str).unwrap_or("anywhere"))))
 }
 
 // Safety: `m` is a live Spot model; in { words, context }
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn alk_enroller(m: *const Model) -> *mut EnrollerHandle {
         let w = Word::of(v.get("word").unwrap_or(&Value::Null))?;
         let takes = v.get("takes").and_then(Value::num).unwrap_or(ENROLL.takes as f64) as usize;
         let chain = v.get("chain").and_then(Value::str).unwrap_or("raw");
-        Ok(EnrollerHandle { spot: Spot::new(&shared(m))?, enroller: Enroller::new(&w.text, &w.lang, w.phonemes, chain, alkove_core::spot::EnrollOptions { takes, ..ENROLL }) })
+        Ok(EnrollerHandle { spot: Spot::new(&shared(m))?, enroller: Enroller::new(&w.text, &w.lang, w.phonemes, chain, lauschwerk_core::spot::EnrollOptions { takes, ..ENROLL }) })
     })())
 }
 
@@ -379,7 +379,7 @@ pub unsafe extern "C" fn alk_enroller_push(e: *mut EnrollerHandle, x: *const f32
     let mut takes = Vec::new();
     let enroller = &mut h.enroller;
     h.spot.push(pcm(x, len), |_, logp, speech| enroller.frame(logp, speech, |t| takes.push(t.to_value())));
-    answer(Ok(alkove_core::value::obj([("takes", Value::Arr(takes)), ("done", h.enroller.done().into())])))
+    answer(Ok(lauschwerk_core::value::obj([("takes", Value::Arr(takes)), ("done", h.enroller.done().into())])))
 }
 
 // Safety: `e` is live; out { word, takes, warnings }
@@ -388,12 +388,12 @@ pub unsafe extern "C" fn alk_enroller_result(e: *mut EnrollerHandle) -> i32 {
     answer(
         (*e).enroller
             .result()
-            .map(|r| alkove_core::value::obj([("word", r.word.to_value()), ("takes", Value::Arr(r.takes.iter().map(|t| t.to_value()).collect())), ("warnings", Value::Arr(r.warnings))])),
+            .map(|r| lauschwerk_core::value::obj([("word", r.word.to_value()), ("takes", Value::Arr(r.takes.iter().map(|t| t.to_value()).collect())), ("warnings", Value::Arr(r.warnings))])),
     )
 }
 
-use alkove_core::learner::Learner;
-use alkove_core::timbre::{Center, Timbre, Voiceprint};
+use lauschwerk_core::learner::Learner;
+use lauschwerk_core::timbre::{Center, Timbre, Voiceprint};
 
 // Safety: `m` is a live Timbre model.
 #[no_mangle]
@@ -422,7 +422,7 @@ pub unsafe extern "C" fn alk_timbre_embed(t: *mut Timbre, x: *const f32, len: us
 // in { op: 'verify', a, b, level } | { op: 'identify', voice, known: [[who, print]], level } | { op: 'merge', prints } | { op: 'read', print }
 #[no_mangle]
 pub extern "C" fn alk_voiceprint() -> i32 {
-    answer(input().and_then(|v| alkove_core::timbre::op(&v)))
+    answer(input().and_then(|v| lauschwerk_core::timbre::op(&v)))
 }
 
 // Safety: in { source, start: print | null }
@@ -487,7 +487,7 @@ pub unsafe extern "C" fn alk_learner_forget(l: *mut Learner) {
     (*l).forget();
 }
 
-use alkove_core::pipeline::{Coach, Coached, Pipeline, PipelineOptions};
+use lauschwerk_core::pipeline::{Coach, Coached, Pipeline, PipelineOptions};
 
 pub struct PipelineHandle {
     p: Pipeline,
@@ -645,5 +645,5 @@ pub unsafe extern "C" fn alk_coach_window(c: *mut Coach, t: *mut Timbre, x: *con
 // Safety: `c` and `t` are live, `x` holds `len` floats; out { same, score }
 #[no_mangle]
 pub unsafe extern "C" fn alk_coach_verify(c: *mut Coach, t: *mut Timbre, x: *const f32, len: usize) -> i32 {
-    answer((*c).verify(&mut *t, pcm(x, len)).map(|(same, score)| alkove_core::value::obj([("same", same.into()), ("score", score.into())])))
+    answer((*c).verify(&mut *t, pcm(x, len)).map(|(same, score)| lauschwerk_core::value::obj([("same", same.into()), ("score", score.into())])))
 }

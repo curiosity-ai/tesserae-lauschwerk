@@ -1,4 +1,4 @@
-//! The float mode IEEE 754 defines, whatever the host process set: a library loaded before Alkove (built with -ffast-math) may flush subnormals to zero, and the bits would no longer be the web's.
+//! The float mode IEEE 754 defines, whatever the host process set: a library loaded before Lauschwerk (built with -ffast-math) may flush subnormals to zero, and the bits would no longer be the web's.
 
 // runs `f` with subnormals kept and rounding to nearest, then puts the caller's mode back
 pub fn exact<T>(f: impl FnOnce() -> T) -> T {

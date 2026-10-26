@@ -1,10 +1,10 @@
 name: Publish sample to GitHub Pages
 
-# Builds alkove from source (Rust to WebAssembly, then the web SDK), compiles Tesserae.Alkove.Sample in Release (which also downloads the models
+# Builds lauschwerk from source (Rust to WebAssembly, then the web SDK), compiles Tesserae.Lauschwerk.Sample in Release (which also downloads the models
 # it self-hosts), and publishes the Transpose output folder to the `gh-pages` branch. Enable Pages with
 # Settings -> Pages -> "Deploy from a branch" -> branch `gh-pages` / root.
 #
-# The Transpose output folder *is* the site: every reference in index.html is relative, and the alkove
+# The Transpose output folder *is* the site: every reference in index.html is relative, and the lauschwerk
 # entry resolves its worker, worklet and engine from its own import.meta.url, so the sub-path Pages
 # serves from needs nothing rewritten. Pages is HTTPS, which the microphone needs.
 
@@ -13,9 +13,9 @@ on:
     branches: [main]
     paths:
       - 'sdk/**'
-      - 'Tesserae.Alkove/**'
-      - 'Tesserae.Alkove.Sample/**'
-      - 'Tesserae.Alkove.slnx'
+      - 'Tesserae.Lauschwerk/**'
+      - 'Tesserae.Lauschwerk.Sample/**'
+      - 'Tesserae.Lauschwerk.slnx'
       - 'scripts/stage-samples.mjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch: {}
@@ -39,14 +39,14 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      # Node is a build prerequisite: alkove is staged from the pinned npm package, and its own CLI
-      # downloads the models the gallery self-hosts.
+      # Node is a build prerequisite: it runs the web SDK's build (esbuild) and its CLI, which downloads
+      # the models the gallery self-hosts.
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: sdk/packages/alkove/package-lock.json
+          cache-dependency-path: sdk/packages/lauschwerk/package-lock.json
 
       - name: Install the Transpose compiler
         run: |
@@ -58,17 +58,17 @@ jobs:
         run: rustup toolchain install && rustc --version
         working-directory: sdk
 
-      # cargo -> alkove-engine.wasm, esbuild -> the SDK's dist/. The BuildAlkoveSdk MSBuild target would
+      # cargo -> lauschwerk-engine.wasm, esbuild -> the SDK's dist/. The BuildLauschwerkSdk MSBuild target would
       # do the same; as its own step it shows in the log, and the target then skips it as up to date.
-      - name: Build alkove from source
+      - name: Build lauschwerk from source
         run: |
           npm ci --no-audit --no-fund
           node scripts/build.mjs
-        working-directory: sdk/packages/alkove
+        working-directory: sdk/packages/lauschwerk
 
       # Release: the chunked module build every consumer ships.
       - name: Build the sample (Release)
-        run: dotnet build Tesserae.Alkove.Sample/Tesserae.Alkove.Sample.csproj -c Release
+        run: dotnet build Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj -c Release
 
       - name: Stage the site
         run: node scripts/stage-samples.mjs

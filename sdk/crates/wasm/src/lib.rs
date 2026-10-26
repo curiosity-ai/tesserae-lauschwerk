@@ -8,7 +8,7 @@ mod harness;
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use alkove_engine::{Model, Plan, Session};
+use lauschwerk_engine::{Model, Plan, Session};
 
 thread_local! {
     static ERROR: RefCell<String> = const { RefCell::new(String::new()) };
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn alk_arena_len(m: *const Model, plan: usize) -> usize {
     plan_at(m, plan).map_or(0, |p| p.arena_len())
 }
 
-unsafe fn ios<'a>(m: *const Model, plan: usize, kind: u32) -> &'a [alkove_engine::Io] {
+unsafe fn ios<'a>(m: *const Model, plan: usize, kind: u32) -> &'a [lauschwerk_engine::Io] {
     match plan_at(m, plan) {
         Some(p) if kind == 0 => p.inputs(),
         Some(p) => p.outputs(),

@@ -6,8 +6,8 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 
-const root = resolve(process.argv[2] ?? process.env.ALKOVE_SITE ?? '../Tesserae.Alkove.Sample/bin/Debug/netstandard2.0/tps');
-const port = Number(process.argv[3] ?? process.env.ALKOVE_PORT ?? 5004);
+const root = resolve(process.argv[2] ?? process.env.LAUSCHWERK_SITE ?? '../Tesserae.Lauschwerk.Sample/bin/Debug/netstandard2.0/tps');
+const port = Number(process.argv[3] ?? process.env.LAUSCHWERK_PORT ?? 5004);
 
 const types = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

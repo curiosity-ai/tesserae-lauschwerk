@@ -1,6 +1,6 @@
 [package]
-name = "alkove-engine"
-description = "Alkove's inference engine: runs .alk models, same result to the bit on every target"
+name = "lauschwerk-engine"
+description = "Lauschwerk's inference engine: runs .alk models, same result to the bit on every target"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

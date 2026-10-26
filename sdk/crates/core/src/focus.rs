@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 use crate::{stream_io, Error, FOCUS};
 

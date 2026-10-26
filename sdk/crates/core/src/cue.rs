@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 use crate::level::Chunker;
 use crate::{js, stream_io, Error, CUE, RATE};

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 use crate::math::ln;
 use crate::value::{obj, Value};
@@ -136,7 +136,7 @@ impl Voiceprint {
         let round = |v: &[f32]| Value::Arr(v.iter().map(|&x| js::to_fixed(x as f64, 5).into()).collect());
         let centers = self.centers.iter().map(|c| obj([("embedding", round(&c.embedding)), ("id", round(&c.id)), ("seconds", js::to_fixed(c.seconds, 1).into())])).collect();
         let mut f = vec![
-            ("alkove".to_string(), Value::from("voiceprint")),
+            ("lauschwerk".to_string(), Value::from("voiceprint")),
             ("model".to_string(), self.model.as_str().into()),
             ("source".to_string(), self.source.as_str().into()),
             ("centers".to_string(), Value::Arr(centers)),
@@ -151,7 +151,7 @@ impl Voiceprint {
     pub fn to_raw_value(&self) -> Value {
         let center = |c: &Center| obj([("embedding", Value::Floats(c.embedding.clone())), ("id", Value::Floats(c.id.clone())), ("seconds", c.seconds.into())]);
         obj([
-            ("alkove", "voiceprint".into()),
+            ("lauschwerk", "voiceprint".into()),
             ("model", self.model.as_str().into()),
             ("source", self.source.as_str().into()),
             ("centers", Value::Arr(self.centers.iter().map(center).collect())),
@@ -161,13 +161,13 @@ impl Voiceprint {
 
     // None for a print of another Timbre: it no longer means anything, learn again
     pub fn from_value(v: &Value) -> Result<Option<Voiceprint>, Error> {
-        if v.get("alkove").and_then(Value::str) != Some("voiceprint") {
-            return Err(Error::Type("not an Alkove voiceprint".into()));
+        if v.get("lauschwerk").and_then(Value::str) != Some("voiceprint") {
+            return Err(Error::Type("not an Lauschwerk voiceprint".into()));
         }
         if v.get("model").and_then(Value::str) != Some(TIMBRE_ID) {
             return Ok(None);
         }
-        let bad = || Error::Type("not an Alkove voiceprint".into());
+        let bad = || Error::Type("not an Lauschwerk voiceprint".into());
         let centers = v.get("centers").and_then(Value::arr).ok_or_else(bad)?.iter().map(|c| Center::from_value(c).map_err(|_| bad())).collect::<Result<Vec<_>, Error>>()?;
         if centers.is_empty() {
             return Err(Error::Type("a voiceprint needs a center".into()));
@@ -352,7 +352,7 @@ impl Timbre {
 }
 
 fn print_of(v: &Value) -> Result<Voiceprint, Error> {
-    Voiceprint::from_value(v)?.ok_or_else(|| Error::Alkove("voiceprint.outdated", "Made by another Timbre: learn the print again.".into()))
+    Voiceprint::from_value(v)?.ok_or_else(|| Error::Lauschwerk("voiceprint.outdated", "Made by another Timbre: learn the print again.".into()))
 }
 
 // a print, or one window of a voice

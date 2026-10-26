@@ -1,0 +1,88 @@
+<Project>
+  <!--
+    Shipped inside the Tesserae.Lauschwerk NuGet package and auto-imported by referencing projects
+    (buildTransitive/, so transitive consumers get it too). On build it copies the lauschwerk web SDK into
+    the Transpose output folder, next to the compiled app, at assets/js/lauschwerk - where LauschwerkJs loads
+    it from the first time something needs it.
+
+    It is copied rather than embedded as a Transpose resource on purpose - see the note in tps.json.
+
+    The same file serves both consumption models. A package consumer resolves the payload at
+    ../lauschwerk inside the restored package. Inside this repo there is no such folder, so it falls back
+    to Tesserae.Lauschwerk/assets/js/lauschwerk - the (gitignored) staging output. That lets
+    Tesserae.Lauschwerk.Sample import this file directly and exercise exactly the copy a real consumer gets.
+
+    Self-hosting the models (opt-in):
+
+        <PropertyGroup>
+          <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
+          <LauschwerkModels>focus cue</LauschwerkModels>   (optional; the default is all five)
+        </PropertyGroup>
+
+    downloads the models once per lauschwerk version (from Hugging Face, at the revision the SDK pins,
+    sha256-checked by lauschwerk's own `lauschwerk models` command), keeps them under obj/, and copies them to
+    assets/js/lauschwerk/models. Call LauschwerkJs.UseSelfHostedModels() before the first input so the SDK
+    fetches them from there. Needs node on the build machine. Without it the SDK downloads them from
+    Hugging Face in the browser - fine for trying it out, and each user then sends Hugging Face their IP.
+  -->
+  <PropertyGroup>
+    <_LauschwerkPackagedDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..', 'lauschwerk'))</_LauschwerkPackagedDir>
+    <_LauschwerkRepoBundleDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..', 'assets', 'js', 'lauschwerk'))</_LauschwerkRepoBundleDir>
+  </PropertyGroup>
+
+  <!--
+    After Build, so it lands after the Transpose compiler has written (and possibly cleaned) the output
+    folder. Everything is resolved inside the target: $(OutDir) is empty at import time, and on a fresh
+    clone the repo bundle does not exist until the referenced project's BundleLauschwerk target has run.
+  -->
+  <Target Name="_CopyLauschwerkAssets" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_LauschwerkSourceDir Condition="Exists('$(_LauschwerkPackagedDir)')">$(_LauschwerkPackagedDir)</_LauschwerkSourceDir>
+      <_LauschwerkSourceDir Condition="'$(_LauschwerkSourceDir)' == '' and Exists('$(_LauschwerkRepoBundleDir)')">$(_LauschwerkRepoBundleDir)</_LauschwerkSourceDir>
+      <LauschwerkAssetsOutputDir Condition="'$(LauschwerkAssetsOutputDir)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutDir)', 'tps', 'assets', 'js', 'lauschwerk'))</LauschwerkAssetsOutputDir>
+    </PropertyGroup>
+
+    <Error Condition="'$(_LauschwerkSourceDir)' == ''"
+           Text="Tesserae.Lauschwerk: no lauschwerk distribution found. Looked in '$(_LauschwerkPackagedDir)' (package) and '$(_LauschwerkRepoBundleDir)' (repo). If building this repo from source, run 'npm install &amp;&amp; npm run bundle' in the Tesserae.Lauschwerk folder." />
+
+    <ReadLinesFromFile File="$(_LauschwerkSourceDir)version.txt">
+      <Output TaskParameter="Lines" PropertyName="_LauschwerkVersion" />
+    </ReadLinesFromFile>
+
+    <!-- cli.js is the model downloader below: a Node script, never something a page loads. -->
+    <ItemGroup>
+      <_LauschwerkFiles Include="$(_LauschwerkSourceDir)**\*" Exclude="$(_LauschwerkSourceDir)**\cli.js" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_LauschwerkFiles)"
+          DestinationFiles="@(_LauschwerkFiles->'$(LauschwerkAssetsOutputDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          OverwriteReadOnlyFiles="true" />
+
+    <Message Importance="normal" Text="Tesserae.Lauschwerk: copied lauschwerk $(_LauschwerkVersion) from $(_LauschwerkSourceDir) to $(LauschwerkAssetsOutputDir)" />
+  </Target>
+
+  <!--
+    AfterTargets rather than a CallTarget from the copy: a called target does not see the properties
+    the caller set while running (_LauschwerkVersion, _LauschwerkSourceDir), one that runs after it does.
+  -->
+  <Target Name="_LauschwerkSelfHostModels" AfterTargets="_CopyLauschwerkAssets" Condition="'$(LauschwerkSelfHostModels)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_LauschwerkModelCache>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'lauschwerk-models', '$(_LauschwerkVersion)'))</_LauschwerkModelCache>
+      <_LauschwerkModelMarker>$(_LauschwerkModelCache).done-$(LauschwerkModels.Replace(' ', '-'))</_LauschwerkModelMarker>
+      <_LauschwerkCli>$(_LauschwerkSourceDir)v$(_LauschwerkVersion)/cli.js</_LauschwerkCli>
+    </PropertyGroup>
+
+    <!-- Once per version and model set: the marker is only written after the command succeeded. -->
+    <Exec Condition="!Exists('$(_LauschwerkModelMarker)')" Command="node &quot;$(_LauschwerkCli)&quot; models &quot;$(_LauschwerkModelCache.TrimEnd('\').TrimEnd('/'))&quot; $(LauschwerkModels)" />
+    <Touch Condition="!Exists('$(_LauschwerkModelMarker)')" Files="$(_LauschwerkModelMarker)" AlwaysCreate="true" />
+
+    <ItemGroup>
+      <_LauschwerkModelFiles Include="$(_LauschwerkModelCache)*.alk" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_LauschwerkModelFiles)" DestinationFolder="$(LauschwerkAssetsOutputDir)models" SkipUnchangedFiles="true" />
+
+    <Message Importance="normal" Text="Tesserae.Lauschwerk: self-hosted @(_LauschwerkModelFiles->Count()) model(s) in $(LauschwerkAssetsOutputDir)models" />
+  </Target>
+</Project>

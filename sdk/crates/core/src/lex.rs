@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 use crate::math::exp;
 use crate::spot::phones::{distance, to_ids, to_ipa};

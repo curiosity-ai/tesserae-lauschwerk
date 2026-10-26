@@ -1,6 +1,6 @@
-# alkove-engine
+# lauschwerk-engine
 
-The inference engine of [Alkove](https://alkove.ai): it runs the five Alkove models (Focus, Cue, Spot, Timbre, Lex) from their `.alk` files, in the browser through WebAssembly and natively. It is not a general runtime: it runs what the [`.alk` format](./FORMAT.md) can express, which is what these models need.
+The inference engine of Lauschwerk: it runs the five Lauschwerk models (Focus, Cue, Spot, Timbre, Lex) from their `.alk` files, in the browser through WebAssembly and natively. It is not a general runtime: it runs what the [`.alk` format](./FORMAT.md) can express, which is what these models need.
 
 Rust, no dependencies, Apache-2.0.
 
@@ -20,9 +20,9 @@ Rust, no dependencies, Apache-2.0.
 
 ```rust
 use std::sync::Arc;
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
-let model = Arc::new(Model::load(&std::fs::read("alkove-cue-1-preview.alk")?)?);
+let model = Arc::new(Model::load(&std::fs::read("lauschwerk-cue-1-preview.alk")?)?);
 let mut s = Session::new(model)?;
 for chunk in audio.chunks_exact(480) {
     s.input_mut("audio").unwrap().copy_from_slice(chunk);
@@ -43,10 +43,10 @@ A model run in several steps holds one plan per step, over the same weights. Lex
 ```sh
 cargo build --release                                     # the native library (crates/wasm, a C ABI)
 RUSTFLAGS="-C target-feature=+simd128,+bulk-memory" \
-  cargo build --release -p alkove-wasm --target wasm32-unknown-unknown
+  cargo build --release -p lauschwerk-wasm --target wasm32-unknown-unknown
 ```
 
-The web SDK (`packages/alkove`) builds the wasm itself (`pnpm build`). It needs no imports, and every browser with WebAssembly SIMD runs it.
+The web SDK (`packages/lauschwerk`) builds the wasm itself (`pnpm build`). It needs no imports, and every browser with WebAssembly SIMD runs it.
 
 ## C ABI
 
@@ -87,4 +87,4 @@ cargo test --release
 
 ## Files
 
-The `.alk` files of the published models are on [Hugging Face](https://huggingface.co/alkove-ai), with their model cards. [FORMAT.md](./FORMAT.md) describes the format: enough to read the weights without this engine, or to write another one.
+The `.alk` files of the models are downloaded from the locations in [`crates/core/models.json`](../core/models.json), checked by sha256. [FORMAT.md](./FORMAT.md) describes the format: enough to read the weights without this engine, or to write another one.

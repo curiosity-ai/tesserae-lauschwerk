@@ -5,7 +5,7 @@ mod tables;
 
 use std::sync::Arc;
 
-use alkove_engine::{Model, Session};
+use lauschwerk_engine::{Model, Session};
 
 pub use enroll::{EnrollOptions, EnrollResult, Enroller, Take, ENROLL};
 use phones::{to_ids, to_ipa};
@@ -90,7 +90,7 @@ impl Word {
     pub fn to_value(&self) -> Value {
         let phonemes = self.phonemes.iter().map(|v| obj([("ipa", v.ipa.as_str().into()), ("lang", v.lang.as_str().into()), ("p", js::to_fixed(v.p, 4).into())])).collect::<Vec<_>>();
         obj([
-            ("alkove", "word".into()),
+            ("lauschwerk", "word".into()),
             ("spot", SPOT_ID.into()),
             ("text", self.text.as_str().into()),
             ("lang", self.lang.iter().map(|l| Value::from(l.as_str())).collect::<Vec<_>>().into()),
@@ -103,13 +103,13 @@ impl Word {
 
     // None for a word compiled for another Spot: its thresholds no longer hold, compile its text again
     pub fn from_value(v: &Value) -> Result<Option<Word>, Error> {
-        if v.get("alkove").and_then(Value::str) != Some("word") {
-            return Err(Error::Type("not an Alkove word".into()));
+        if v.get("lauschwerk").and_then(Value::str) != Some("word") {
+            return Err(Error::Type("not an Lauschwerk word".into()));
         }
         if v.get("spot").and_then(Value::str) != Some(SPOT_ID) {
             return Ok(None);
         }
-        let bad = || Error::Type("not an Alkove word".into());
+        let bad = || Error::Type("not an Lauschwerk word".into());
         let s = |k: &str| v.get(k).and_then(Value::str).map(str::to_string).ok_or_else(bad);
         let lang = v.get("lang").and_then(Value::arr).ok_or_else(bad)?.iter().map(|l| l.str().map(str::to_string).ok_or_else(bad)).collect::<Result<Vec<_>, _>>()?;
         let mut phonemes = Vec::new();
@@ -134,7 +134,7 @@ impl Word {
     pub fn of(v: &Value) -> Result<Word, Error> {
         Word::from_value(v)?.ok_or_else(|| {
             let text = v.get("text").and_then(Value::str).unwrap_or("");
-            Error::Alkove("word.outdated", format!("Compiled for another Spot: compile \"{text}\" again."))
+            Error::Lauschwerk("word.outdated", format!("Compiled for another Spot: compile \"{text}\" again."))
         })
     }
 }
@@ -377,7 +377,7 @@ mod tests {
 
     fn word(phonemes: Vec<Value>) -> Value {
         obj([
-            ("alkove", "word".into()),
+            ("lauschwerk", "word".into()),
             ("spot", SPOT_ID.into()),
             ("text", "hey".into()),
             ("lang", Value::Arr(vec!["en".into()])),

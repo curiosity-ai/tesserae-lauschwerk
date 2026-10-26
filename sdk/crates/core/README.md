@@ -1,6 +1,6 @@
-# alkove-core
+# lauschwerk-core
 
-What turns the outputs of the [Alkove engine](../engine) into features: the chain that keeps the user's voice, the speech events, wake words, pronunciations and voiceprints. It is written once, in Rust, for every Alkove SDK: the web package runs it as WebAssembly, the Python package natively, as the Android and iOS packages will.
+What turns the outputs of the [Lauschwerk engine](../engine) into features: the chain that keeps the user's voice, the speech events, wake words, pronunciations and voiceprints. It is written once, in Rust, for every Lauschwerk SDK: the web package runs it as WebAssembly, the Python package natively, as the Android and iOS packages will.
 
 Rust, no dependencies beyond the engine, Apache-2.0.
 
@@ -9,7 +9,7 @@ Rust, no dependencies beyond the engine, Apache-2.0.
 | Piece | |
 |---|---|
 | `Chain` | Focus, then Cue on Focus's output, the mix with the raw mic (`strength`), the level (`normalize`), the gate; a new print applied at the next silence from a fresh state, a fresh state after 30 s, sleep in silences. One hop of 256 samples at 16 kHz per `step`. |
-| `Processor`, `process` | Focus and Cue over audio pushed in blocks of any size, the output aligned with the input, as `Alkove.process` and `Alkove.stream` give them. |
+| `Processor`, `process` | Focus and Cue over audio pushed in blocks of any size, the output aligned with the input, as `Lauschwerk.process` and `Lauschwerk.stream` give them. |
 | `SpeechTracker` | the speech state machine on Cue's probabilities: `confidence`, `exitConfidence`, `startSecs`, `stopSecs`. |
 | `Resampler` | windowed sinc between any two rates, across chunks. |
 | `Live` | the chain on a live stream at any rate, as the web SDK runs it in real time. |
@@ -31,11 +31,11 @@ Rust, no dependencies beyond the engine, Apache-2.0.
 
 ```rust
 use std::sync::Arc;
-use alkove_core::{Chain, ChainOptions};
-use alkove_engine::Model;
+use lauschwerk_core::{Chain, ChainOptions};
+use lauschwerk_engine::Model;
 
-let focus = Arc::new(Model::load(&std::fs::read("alkove-focus-1-preview.alk")?)?);
-let cue = Arc::new(Model::load(&std::fs::read("alkove-cue-1-preview.alk")?)?);
+let focus = Arc::new(Model::load(&std::fs::read("lauschwerk-focus-1-preview.alk")?)?);
+let cue = Arc::new(Model::load(&std::fs::read("lauschwerk-cue-1-preview.alk")?)?);
 let mut chain = Chain::new(&focus, &cue, ChainOptions::default())?;
 let mut events = Vec::new();
 for hop in mic.chunks_exact(256) {
@@ -64,6 +64,6 @@ Event kinds: 0 speech start (`start`), 1 speech end (`start`, `end`), 2 idle (`a
 ## Tests
 
 - **`cargo test`**: JavaScript's number rules, the core's math, the float mode guard, the values' encoding.
-- **`packages/alkove/test/core.test.ts`, `spot-core.test.ts`, `timbre-core.test.ts`**: the core against JavaScript and the TypeScript where they remain (math, resampler, `normalize`, `toLowerCase`, the regular expressions on every code point, phonemes, prints and their thresholds), and against digests of what the TypeScript gave (chain, `process`, the keyword search, Lex, compiling, listening, enrolling, Timbre, learning) on streams drawn at random.
-- **`packages/alkove/test/worker.test.ts`**: the built worker on a simulated clock, every channel (events, hops, audio, utterances, the background's messages) against digests of what the worker gave before the core.
+- **`packages/lauschwerk/test/core.test.ts`, `spot-core.test.ts`, `timbre-core.test.ts`**: the core against JavaScript and the TypeScript where they remain (math, resampler, `normalize`, `toLowerCase`, the regular expressions on every code point, phonemes, prints and their thresholds), and against digests of what the TypeScript gave (chain, `process`, the keyword search, Lex, compiling, listening, enrolling, Timbre, learning) on streams drawn at random.
+- **`packages/lauschwerk/test/worker.test.ts`**: the built worker on a simulated clock, every channel (events, hops, audio, utterances, the background's messages) against digests of what the worker gave before the core.
 - **`python/tests`**: the same streams drawn in Python give the same digests, natively.

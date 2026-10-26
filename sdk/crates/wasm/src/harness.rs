@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
-use alkove_core::spot::phones::{distance, to_ids, to_ipa};
-use alkove_core::spot::search::Search;
-use alkove_core::{js, lex, math, text, Resampler, Value};
+use lauschwerk_core::spot::phones::{distance, to_ids, to_ipa};
+use lauschwerk_core::spot::search::Search;
+use lauschwerk_core::{js, lex, math, text, Resampler, Value};
 
 use crate::core::{answer, input};
 

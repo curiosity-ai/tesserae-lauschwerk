@@ -6,7 +6,7 @@ test('an agent input streams packets and cuts one utterance per sentence', async
   await open(page, 'Agent Input');
   await button(page.locator('.tss-card'), 'Start').click();
 
-  await expect(page.locator('.alk-utterance')).toHaveCount(2, { timeout: 30_000 });
-  await expect(page.locator('#alk-agent-packets')).not.toHaveText('0 packets');
+  await expect(page.locator('.lw-utterance')).toHaveCount(2, { timeout: 30_000 });
+  await expect(page.locator('#lw-agent-packets')).not.toHaveText('0 packets');
   expect(problems).toEqual([]);
 });
