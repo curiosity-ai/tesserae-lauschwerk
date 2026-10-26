@@ -4,15 +4,17 @@ On-device voice input for [Tesserae](https://github.com/curiosity-ai/tesserae) a
 [alkove](https://www.npmjs.com/package/alkove) web SDK: keep only the user's voice, tell when they speak,
 hear any typed wake word, recognize a voice - in the browser, in WebAssembly, with no server and no key.
 
-> **Unofficial.** A wrapper that bundles the pinned `alkove` npm release unmodified (Apache-2.0, code and
-> weights). alkove itself is a preview (0.x). This repository started as a fork of alkove's monorepo;
-> that source is kept, unbuilt, in [`.reference/`](./.reference) for reading.
+> **Unofficial.** Built on alkove's Apache-2.0 code and weights; alkove itself is a preview (0.x). This
+> repository started as a fork of alkove's monorepo: the part it ships (the Rust engine compiled to
+> WebAssembly, and the web SDK) is built from source in [`sdk/`](./sdk), and upstream as forked is kept
+> unchanged in [`.reference/`](./.reference) to diff against.
 
 ## What is in it
 
 | | |
 |---|---|
 | [`Tesserae.Alkove`](./Tesserae.Alkove) | the NuGet package: typed C# over the SDK, and Tesserae components ([its README](./Tesserae.Alkove/README.md)) |
+| [`sdk`](./sdk) | alkove built from source: Rust engine and core to WebAssembly, the TypeScript web SDK ([its README](./sdk/README.md)) |
 | [`Tesserae.Alkove.Sample`](./Tesserae.Alkove.Sample) | the gallery: one page per feature |
 | [`tests`](./tests) | Playwright checks - Chromium plays synthesized speech as the microphone |
 | [`tools/Alkove.TestAudio`](./tools/Alkove.TestAudio) | synthesizes that speech with [Voxwerk](https://github.com/curiosity-ai/voxwerk) |
@@ -42,11 +44,13 @@ VStack().Children(CallInputPanel(), WakeWordPanel("Hey Nova"), VoiceprintEnrollm
 
 ```bash
 dotnet tool update --global Transpose.Compiler
-dotnet build Tesserae.Alkove.slnx                      # needs node: stages the SDK, downloads the models once
+dotnet build Tesserae.Alkove.slnx                      # needs Rust and node: builds the wasm and the SDK, downloads the models once
+                                                      # (no Rust? add /p:AlkoveSource=npm to use the published release)
 
 cd Tesserae.Alkove.Sample/bin/Debug/netstandard2.0/tps && dotnet serve --port 5000
 
 cd tests && npm ci && npx playwright test             # the gallery must be built first
+scripts/diff-upstream.sh                              # what sdk/ changes against upstream
 ```
 
 [CLAUDE.md](./CLAUDE.md) has how it is put together and why; [TODO.md](./TODO.md) what is left.

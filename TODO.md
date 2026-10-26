@@ -27,8 +27,14 @@
 - [ ] A packaged-consumer check in CI: pack, restore from a local feed, build a project whose only
       reference is the package, confirm `assets/js/alkove/` lands in its output.
 
-## Upstream
+## Upstream and sdk/
 
-- [ ] On each `alkove` bump: re-check the dist layout (`bundle-alkove.mjs` fails loudly if a required file
-      moved), the event and option names in `src/Interop/` against `dist/*.d.ts`, the model manifest, and
-      re-run the fixtures through `tests/` - the thresholds in `primitives.spec.js` are model values.
+- [ ] Taking a newer upstream: replace `.reference/`, `scripts/diff-upstream.sh -u` for our changes,
+      re-copy into `sdk/`, carry them over. Then re-check the dist layout (`bundle-alkove.mjs` fails
+      loudly if a required file moved), the event and option names in `src/Interop/` against
+      `dist/*.d.ts`, the model manifest, and re-run the fixtures through `tests/` - the thresholds in
+      `primitives.spec.js` are model values. Bump the npm fallback pin in `Tesserae.Alkove/package.json`.
+- [ ] The wasm32-wasip1 run of the cargo tests (upstream's CI runs them under wasmtime with SIMD on and
+      off) is not in our pipeline yet: it checks the engine on the target we ship, not only natively.
+- [ ] A check in the pipeline that `sdk/` built from source still matches the npm release while we have
+      not changed it (the two are byte-identical for 0.3.2) - it catches a toolchain drift early.

@@ -444,3 +444,8 @@ _site/
 tests/test-results/
 tests/playwright-report/
 tests/node_modules/
+
+# The Rust/wasm build and the web SDK built from sdk/
+sdk/target/
+sdk/packages/alkove/dist/
+sdk/packages/alkove/node_modules/

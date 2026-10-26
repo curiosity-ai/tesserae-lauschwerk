@@ -41,18 +41,43 @@
   </ItemGroup>
 
   <!--
-    alkove is consumed from the pinned `alkove` npm package. Its dist/ is already a browser build, so
-    build/bundle-alkove.mjs only stages it - verbatim, into a folder named after its version - and
-    writes the small module entry that publishes window.alkove. Nothing alkove-related is committed:
-    assets/ is gitignored and regenerated here.
+    alkove is built from source, from sdk/ - the engine, the core and the web SDK copied out of
+    .reference/ (which keeps upstream's copy to diff against):
+
+      BuildAlkoveSdk   cargo -> alkove-engine.wasm (wasm32, SIMD, the pinned toolchain in
+                       sdk/rust-toolchain.toml), then esbuild -> the SDK's dist/ - upstream's own
+                       sdk/packages/alkove/scripts/build.mjs, unchanged
+      BundleAlkove     stages that dist into assets/js/alkove (build/bundle-alkove.mjs)
+
+    /p:AlkoveSource=npm stages the pinned npm release (package.json here) instead, for a machine without
+    Rust. For 0.3.2 both are byte-identical. Nothing built is committed: dist/, target/ and assets/ are
+    gitignored.
   -->
   <PropertyGroup>
+    <AlkoveSource Condition="'$(AlkoveSource)' == ''">source</AlkoveSource>
     <AlkoveBundleDir>$(MSBuildProjectDirectory)/assets/js/alkove</AlkoveBundleDir>
+    <AlkoveSdkDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', 'sdk'))</AlkoveSdkDir>
+    <AlkoveSdkPackageDir>$(AlkoveSdkDir)packages/alkove</AlkoveSdkPackageDir>
   </PropertyGroup>
 
-  <Target Name="BundleAlkove" BeforeTargets="BeforeBuild" Inputs="package.json;build/bundle-alkove.mjs" Outputs="$(AlkoveBundleDir)/version.txt">
-    <Exec Command="npm install --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)" />
-    <Exec Command="npm run bundle" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  <ItemGroup>
+    <_AlkoveSdkInputs Include="$(AlkoveSdkDir)crates/**/*.rs;$(AlkoveSdkDir)crates/**/Cargo.toml;$(AlkoveSdkDir)crates/core/models.json;$(AlkoveSdkDir)Cargo.toml;$(AlkoveSdkDir)rust-toolchain.toml" />
+    <_AlkoveSdkInputs Include="$(AlkoveSdkPackageDir)/src/**/*.ts;$(AlkoveSdkPackageDir)/scripts/*.mjs;$(AlkoveSdkPackageDir)/package.json" />
+  </ItemGroup>
+
+  <Target Name="BuildAlkoveSdk" Condition="'$(AlkoveSource)' == 'source'" Inputs="@(_AlkoveSdkInputs)" Outputs="$(AlkoveSdkPackageDir)/dist/alkove-engine.wasm">
+    <Exec Command="cargo --version" ConsoleToMSBuild="true" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="_AlkoveCargoExit" />
+    </Exec>
+    <Error Condition="'$(_AlkoveCargoExit)' != '0'" Text="Tesserae.Alkove: building alkove from source needs Rust (rustup installs the toolchain sdk/rust-toolchain.toml pins, with the wasm32 target). Without it, build with /p:AlkoveSource=npm to stage the published release." />
+    <Exec Condition="!Exists('$(AlkoveSdkPackageDir)/node_modules')" Command="npm ci --no-audit --no-fund" WorkingDirectory="$(AlkoveSdkPackageDir)" />
+    <Exec Command="node scripts/build.mjs" WorkingDirectory="$(AlkoveSdkPackageDir)" />
+  </Target>
+
+  <Target Name="BundleAlkove" BeforeTargets="BeforeBuild" DependsOnTargets="BuildAlkoveSdk" Inputs="package.json;build/bundle-alkove.mjs;$(AlkoveSdkPackageDir)/dist/alkove-engine.wasm" Outputs="$(AlkoveBundleDir)/version.txt">
+    <Exec Condition="'$(AlkoveSource)' == 'npm'" Command="npm install --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Condition="'$(AlkoveSource)' == 'npm'" Command="npm run bundle -- npm" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Condition="'$(AlkoveSource)' != 'npm'" Command="npm run bundle" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 
   <!--

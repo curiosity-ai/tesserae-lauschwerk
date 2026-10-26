@@ -73,6 +73,15 @@ namespace Tesserae.Alkove
         public static string Version => IsLoaded ? AlkoveLib.version : null;
 
         /// <summary>
+        /// True when the bundled SDK was built from this repository's <c>sdk/</c> (the default), false when
+        /// the package was built with <c>/p:AlkoveSource=npm</c> and carries the published release.
+        /// </summary>
+        public static bool BuiltFromSource => IsLoaded && AlkoveLib.source == "sdk";
+
+        /// <summary>The sha256 of the bundled WebAssembly engine, or null before the SDK has loaded.</summary>
+        public static string EngineSha256 => IsLoaded ? AlkoveLib.engineSha256 : null;
+
+        /// <summary>
         /// Loads the SDK, at most once per page. Every factory awaits this, so a host rarely needs it -
         /// it is for warming the SDK up, or for reading <see cref="Version"/> early. A failed load is
         /// forgotten, so the next call tries again rather than inheriting the failure.

@@ -19,7 +19,7 @@ test('Lex gives a pronunciation and Spot thresholds for a typed word', async ({ 
 test('reports support, the bundled version and self-hosted models, and preloads', async ({ page, problems }) => {
   await open(page, 'Models and Support');
   await expect(page.locator('#alk-support')).toContainText('the models will run');
-  await expect(page.locator('#alk-version')).toContainText(/alkove \d+\.\d+\.\d+/);
+  await expect(page.locator('#alk-version')).toContainText(/alkove \d+\.\d+\.\d+, (built from source \(sdk\/\)|the npm release), engine sha256 [0-9a-f]{12}/);
   await expect(page.locator('#alk-models')).toContainText('Self-hosted models');
 
   for (const preloader of await page.locator('.tss-alkove-preload').all()) {

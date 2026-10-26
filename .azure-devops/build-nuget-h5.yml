@@ -1,0 +1,129 @@
+variables:
+  buildConfiguration: 'Release'
+
+# Shaped like Tesserae's own pipeline (tesserae/.azure-devops/build-nuget-h5.yml): one pipeline on the
+# default branch that versions, builds and pushes. Here the build starts from source - the Rust engine to
+# WebAssembly and the web SDK in sdk/ - and is tested before anything is pushed.
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- checkout: self
+  submodules: true
+  persistCredentials: true
+
+- task: PowerShell@2
+  displayName: 'Set Version'
+  inputs:
+    targetType: 'inline'
+    script: |
+      # yy.M.build, like the Tesserae packages that started after Tesserae itself (Tesserae.Themes.*).
+      # Never name a variable here after an MSBuild property: every pipeline variable is also exported as
+      # an environment variable, and MSBuild reads those as properties (Tesserae learned this with a
+      # variable called packageVersion). buildVersion is passed explicitly as /p:Version below.
+      $short=$(Get-Date -Format yy.M);
+      Write-Host "##vso[task.setvariable variable=buildVersion]$short.$(build.buildId)"
+
+- task: UseDotNet@2
+  displayName: 'Use .NET 10.0 sdk'
+  inputs:
+    packageType: sdk
+    version: 10.x
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
+- task: NuGetToolInstaller@1
+
+- task: CmdLine@2
+  displayName: 'install Transpose compiler'
+  inputs:
+    script: 'dotnet tool update --global Transpose.Compiler'
+
+- task: NodeTool@0
+  displayName: 'Use Node.js 22.x'
+  inputs:
+    versionSpec: '22.x'
+
+# The toolchain sdk/rust-toolchain.toml pins (wasm32 target included): the rustc upstream releases with,
+# which is what makes alkove-engine.wasm come out byte-identical to theirs.
+- task: CmdLine@2
+  displayName: 'install Rust toolchain'
+  inputs:
+    script: |
+      rustup toolchain install
+      rustc --version
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/'
+
+# cargo -> alkove-engine.wasm, esbuild -> the SDK's dist/ (upstream's scripts/build.mjs, unchanged).
+# A step of its own so it shows in the log; the BuildAlkoveSdk MSBuild target then skips it as up to date.
+- task: CmdLine@2
+  displayName: 'build alkove from source (Rust to WebAssembly, web SDK)'
+  inputs:
+    script: |
+      call npm ci --no-audit --no-fund
+      if errorlevel 1 exit /b 1
+      node scripts/build.mjs
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/alkove/'
+
+- task: CmdLine@2
+  displayName: 'test the engine and the core (cargo)'
+  inputs:
+    script: 'cargo test --release -p alkove-engine -p alkove-core'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/'
+
+# The SDK's unit tests compare the wasm's outputs with the native engine's, bit for bit, on the models.
+- task: CmdLine@2
+  displayName: 'test the web SDK (vitest)'
+  inputs:
+    script: |
+      node dist/cli.js models .cache/models
+      if errorlevel 1 exit /b 1
+      npx vitest run
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/alkove/'
+
+- task: CmdLine@2
+  displayName: 'restore Tesserae.Alkove project'
+  inputs:
+    script: 'dotnet restore $(Build.SourcesDirectory)\Tesserae.Alkove\Tesserae.Alkove.csproj'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove/'
+
+- task: CmdLine@2
+  displayName: 'Build Tesserae.Alkove'
+  inputs:
+    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Alkove\Tesserae.Alkove.csproj -c $(buildConfiguration) /p:Version=$(buildVersion)'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove/'
+
+# Not packed, but the only thing that exercises Tesserae.Alkove.targets copying alkove (and the
+# self-hosted models) into an application's output - and the site the browser checks below run on.
+- task: CmdLine@2
+  displayName: 'Build Tesserae.Alkove.Sample'
+  inputs:
+    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Alkove.Sample\Tesserae.Alkove.Sample.csproj -c $(buildConfiguration)'
+    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Alkove.Sample/'
+
+# Chromium plays the synthesized speech as the microphone: every component, live and on files.
+- task: CmdLine@2
+  displayName: 'browser checks (Playwright)'
+  inputs:
+    script: |
+      call npm ci --no-audit --no-fund
+      if errorlevel 1 exit /b 1
+      call npx playwright install chromium
+      if errorlevel 1 exit /b 1
+      set ALKOVE_SITE=..\Tesserae.Alkove.Sample\bin\Release\netstandard2.0\tps
+      npx playwright test
+    workingDirectory: '$(Build.SourcesDirectory)/tests/'
+
+- task: CmdLine@2
+  inputs:
+    script: 'dir $(Build.SourcesDirectory)\Tesserae.Alkove\bin\ /S'
+
+- task: NuGetCommand@2
+  displayName: 'push Tesserae.Alkove to nuget'
+  inputs:
+    command: 'push'
+    packagesToPush: '**/*/Tesserae.Alkove.$(buildVersion).nupkg' # The package name comes from the PackageID, not project name
+    nuGetFeedType: 'external'
+    publishFeedCredentials: 'nuget-curiosity-org'

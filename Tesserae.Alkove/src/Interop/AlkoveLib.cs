@@ -25,6 +25,12 @@ namespace Tesserae.Alkove
         /// <summary>The bundled alkove version, written into the entry by the bundle script.</summary>
         public static extern string version { get; }
 
+        /// <summary><c>sdk</c> when built from this repository's sdk/, <c>npm</c> when staged from the release.</summary>
+        public static extern string source { get; }
+
+        /// <summary>The sha256 of the bundled alkove-engine.wasm.</summary>
+        public static extern string engineSha256 { get; }
+
         /// <summary>The folder the SDK loads its worker, worklet and engine from.</summary>
         public static extern string assetBaseUrl { get; }
 

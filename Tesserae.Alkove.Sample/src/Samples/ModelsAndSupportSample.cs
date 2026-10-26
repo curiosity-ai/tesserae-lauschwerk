@@ -25,7 +25,7 @@ namespace Tesserae.Alkove.Sample
             {
                 var s = await AlkoveJs.SupportAsync();
                 support.Text = "secure page: " + Yes(s.Secure) + ", AudioWorklet: " + Yes(s.Worklet) + ", WebAssembly SIMD: " + Yes(s.Simd) + (s.Full ? " - the models will run." : " - inputs will stay raw.");
-                version.Text = "alkove " + AlkoveJs.Version + " from " + AlkoveJs.BaseUrl;
+                version.Text = "alkove " + AlkoveJs.Version + (AlkoveJs.BuiltFromSource ? ", built from source (sdk/)" : ", the npm release") + ", engine sha256 " + AlkoveJs.EngineSha256.Substring(0, 12) + "… from " + AlkoveJs.BaseUrl;
                 models.Text  = AlkoveJs.ModelBaseUrl is null ? "Models from Hugging Face" : "Self-hosted models: " + AlkoveJs.ModelBaseUrl;
                 mic.Text     = "Microphone permission: " + (await AlkoveJs.MicPermissionAsync()).ToString().ToLower();
             }

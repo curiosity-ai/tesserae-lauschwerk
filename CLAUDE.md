@@ -14,9 +14,11 @@ release, a typed `[External]` interop layer, components built from Tesserae's ow
 It depends on **Tesserae only**.
 
 The repository started as a fork of alkove's own monorepo (Rust engine, web, Python, Android,
-integrations). That source now lives in **`.reference/`** - read it, never build from it, never ship
-from it. The package consumes alkove's *published* npm package instead (see below). Its original GitHub
-workflows are kept under `.github/workflows/*.yml.disabled` so they no longer run.
+integrations). That source lives on, unchanged, in **`.reference/`** - upstream as forked, to diff
+against. The part we build and ship (the engine, the core, their wasm module and the web SDK) is copied
+into **`sdk/`** with the same relative layout, and that copy is what gets built: Rust to WebAssembly,
+then the SDK (see "alkove is built from source" below). Change code in `sdk/`, never in `.reference/`.
+The original GitHub workflows are kept under `.github/workflows/*.yml.disabled` so they no longer run.
 
 ```
 Tesserae.Alkove/                    the package
@@ -29,14 +31,16 @@ Tesserae.Alkove/                    the package
   src/Interop/                      [External] declarations of the `alkove` global, events, [ObjectLiteral] options
   src/Components/                   the Tesserae components (panels, meters, waveform, enrollment...)
   src/AlkoveUI.cs                   the component factories (using static Tesserae.Alkove.AlkoveUI)
-  build/bundle-alkove.mjs           stages node_modules/alkove/dist into assets/js/alkove (gitignored)
+  build/bundle-alkove.mjs           stages sdk/packages/alkove/dist (or the npm release) into assets/js/alkove
   buildTransitive/*.targets         copies it into a consumer's output; opt-in model self-hosting
 Tesserae.Alkove.Sample/             the gallery: a sidebar of features, one page each
   assets/audio/                     the speech fixtures, synthesized by tools/Alkove.TestAudio
 tests/                              Playwright specs (fake microphone = the fixtures), a static server
 tools/Alkove.TestAudio/             writes the fixtures with Voxwerk (Qwen3-TTS in C#), like Neko's voice-overs
 scripts/stage-samples.mjs           stages the Release build into _site/ for GitHub Pages
-.reference/                         alkove's original monorepo, for reading
+scripts/diff-upstream.sh            what sdk/ changes against .reference/
+sdk/                                alkove built from source: crates/{engine,core,wasm}, packages/alkove
+.reference/                         alkove's original monorepo as forked, unchanged, for diffing
 ```
 
 ## Build
@@ -49,9 +53,12 @@ export PATH="$PATH:$HOME/.dotnet/tools"
 dotnet build Tesserae.Alkove.slnx
 ```
 
-The first build runs `npm install && npm run bundle` in `Tesserae.Alkove/` (the `BundleAlkove`
-target), and the sample's first build downloads the five models (7.5 MB) once per alkove version into
-`obj/alkove-models/` - so node is a prerequisite. To see the gallery:
+The first build compiles alkove from `sdk/` (the `BuildAlkoveSdk` target: `npm ci` and upstream's
+`scripts/build.mjs` in `sdk/packages/alkove` - cargo to wasm32, then esbuild), stages it (`BundleAlkove`),
+and the sample's first build downloads the five models (7.5 MB) once per alkove version into
+`obj/alkove-models/`. So **Rust** (rustup; the toolchain comes from `sdk/rust-toolchain.toml`) and
+**node** are prerequisites. Without Rust, `dotnet build /p:AlkoveSource=npm` stages the pinned npm release
+instead - byte-identical for 0.3.2. To see the gallery:
 
 ```bash
 cd Tesserae.Alkove.Sample/bin/Debug/netstandard2.0/tps && dotnet serve --port 5000
@@ -59,21 +66,46 @@ cd Tesserae.Alkove.Sample/bin/Debug/netstandard2.0/tps && dotnet serve --port 50
 
 `localhost` is a secure context; the microphone and Cache Storage need one.
 
-## alkove is staged, not bundled - and never vendored
+## alkove is built from source
 
-Nothing alkove-related is committed. `Tesserae.Alkove/assets/` is gitignored and regenerated from the
-pinned npm package (`alkove` in `package.json`, exact pin) on every build.
+`sdk/` holds alkove's engine and core (Rust), their wasm module and the web SDK (TypeScript), copied from
+`.reference/` with the same layout (`sdk/crates/{engine,core,wasm}`, `sdk/packages/alkove`), so
+`scripts/diff-upstream.sh` can list what we changed and upstream's build script runs unmodified. Python,
+Android, the integrations and the benchmarks stay only in `.reference/`; the `sdk/Cargo.toml` workspace
+has the three crates as members, so its `Cargo.lock` is upstream's minus theirs. The crates have no
+dependencies from crates.io: the build needs the toolchain and nothing else.
 
-Unlike Monaco or pdf.js there is nothing to bundle: alkove's `dist/` is already a browser build - an ES
-module entry (`index.js`), two shared chunks, a chunk only Node imports (behind an `isNode()` guard and a
-dynamic `import()`, so a browser never fetches it), the realtime worker and the AudioWorklet as plain
-scripts, and the engine `.wasm`. `build/bundle-alkove.mjs` copies those files **verbatim** - never a
-patched copy - and writes two of its own:
+The build is upstream's `sdk/packages/alkove/scripts/build.mjs`: `cargo build --release -p alkove-wasm
+--target wasm32-unknown-unknown` with `+simd128,+bulk-memory` and the toolchain and workspace paths
+remapped out of the binary, then esbuild for the SDK, the worker and the worklet, then `tsc` for the
+declarations. **It is reproducible**: built here, every file of `dist/` is byte-identical to the
+published `alkove@0.3.2` (the wasm's sha256 `c22e900a...` included) - which is what made it safe to switch
+the package to it, and what makes any later difference a real change. The toolchain pin
+(`sdk/rust-toolchain.toml`, 1.99.1) is part of that: another rustc gives other bytes.
+
+`BuildAlkoveSdk` (csproj) runs it when a Rust or TypeScript source, a manifest or the toolchain file is
+newer than `dist/alkove-engine.wasm`, and fails with a pointer to `/p:AlkoveSource=npm` when there is no
+`cargo`. A change to the engine or the core changes the wasm's sha256, which the build writes into
+`src/engine.generated.ts` (the loader checks the downloaded engine against it): commit it with the change.
+
+Upstream's own tests run from the copy: `cargo test --release -p alkove-engine -p alkove-core` (34) and,
+with the models in `.cache/models` (`node dist/cli.js models .cache/models`), `npx vitest run` in
+`sdk/packages/alkove` (95 - the wasm's outputs against the native engine's, bit for bit). The pipeline
+runs both before it packs.
+
+## The staged SDK
+
+alkove's `dist/` is already a browser build - an ES module entry (`index.js`), two shared chunks, a
+chunk only Node imports (behind an `isNode()` guard and a dynamic `import()`, so a browser never fetches
+it), the realtime worker and the AudioWorklet as plain scripts, and the engine `.wasm`.
+`build/bundle-alkove.mjs` copies those files **verbatim** - from `sdk/packages/alkove/dist`, or with
+`npm` from the pinned release in `node_modules/alkove` - and writes two of its own:
 
 - **`alkove.js`**, the entry Tesserae.Alkove loads: it imports the SDK, calls
   `Alkove.configure({ assetBaseUrl })` with its own folder, and publishes the module namespace as
   `window.alkove` (plus `version` and `assetBaseUrl`).
-- **`version.txt`**, the MSBuild `Inputs`/`Outputs` marker and what the targets read the version from.
+- **`version.txt`**, the MSBuild `Inputs`/`Outputs` marker and what the targets read the version from
+  (the `version` of `sdk/packages/alkove/package.json`).
 
 Two decisions in that layout, each load-bearing:
 
@@ -225,13 +257,19 @@ pieces they are made of.
 
 ## Publishing
 
-- **NuGet:** `.azure-devops/build-nuget-transpose.yml`, as in the sibling repos (CalVer version).
+- **NuGet:** `.azure-devops/build-nuget-h5.yml`, shaped like Tesserae's pipeline of the same name: on
+  `main`, versions the package **`yy.M.<build id>`** (as Tesserae's newer packages, the themes, do),
+  installs the pinned Rust toolchain, builds alkove from source, runs the cargo and vitest suites, builds
+  the package and the sample in Release, runs the Playwright checks against it, and pushes. The version
+  variable is `buildVersion`, passed as `/p:Version` - never name a pipeline variable after an MSBuild
+  property, since every variable is also an environment variable and MSBuild reads those as properties
+  (Tesserae's `packageVersion` incident).
 - **GitHub Pages:** `.github/workflows/pages.yml` builds the gallery in Release (models self-hosted) and
   publishes `_site/` to `gh-pages`. Everything in the site is relative, so it works under a sub-path.
 
 ## Naming
 
 alkove's own README says its license grants no right to the Alkove name or logo and that a fork may not
-call itself Alkove. This repository is no longer a fork of the SDK - it ships the unmodified npm release
+call itself Alkove. This repository builds alkove's source unchanged (byte-identical to the npm release)
 behind a wrapper - and `Tesserae.Alkove` names what it wraps the way `Tesserae.Pdf` and `Tesserae.Monaco`
 do; the README says it is unofficial and the logo is not used. Keep it that way.
