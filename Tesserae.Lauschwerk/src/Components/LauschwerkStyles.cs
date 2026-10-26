@@ -65,6 +65,15 @@ namespace Tesserae.Lauschwerk
 .tss-lw-live { position: relative; width: 100%; height: 96px; border: 1px solid var(--tss-default-border-color); border-radius: 6px; overflow: hidden; }
 .tss-lw-live.tss-lw-live-frameless { border-color: transparent; border-radius: 0; }
 .tss-lw-live canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tss-lw-overlay { position: fixed; left: 50%; bottom: 24px; z-index: var(--tss-lw-overlay-z, 2000); width: min(640px, calc(100vw - 32px)); box-sizing: border-box; background: var(--tss-default-background-color); color: var(--tss-default-foreground-color); border: 1px solid var(--tss-default-border-color); border-radius: var(--tss-lw-overlay-radius, 12px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22); opacity: 0; transform: translate(-50%, 24px); transition: opacity 180ms ease-out, transform 180ms ease-out; }
+.tss-lw-overlay.tss-lw-overlay-open { opacity: 1; transform: translate(-50%, 0); }
+.tss-lw-overlay .tss-lw-overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 0 20px; min-height: 28px; }
+.tss-lw-overlay .tss-lw-overlay-state { font-family: var(--tss-monospace-font-family, ui-monospace, 'SF Mono', Menlo, Consolas, monospace); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tss-secondary-foreground-color); }
+.tss-lw-overlay canvas { display: block; width: 100%; height: 104px; }
+.tss-lw-overlay .tss-lw-overlay-text { padding: 0 20px 18px; min-height: 2.8em; font-size: 18px; line-height: 1.4; color: var(--tss-secondary-foreground-color); overflow-wrap: anywhere; }
+.tss-lw-overlay .tss-lw-overlay-text.tss-lw-overlay-final { color: var(--tss-default-foreground-color); }
+body.tss-theme-curiosity .tss-lw-overlay { --tss-lw-overlay-radius: 0; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .tss-lw-overlay { transition: none; } }
 .tss-lw-takes { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) {
   .tss-lw-meter .tss-lw-meter-fill, .tss-lw-speaking .tss-lw-dot { transition: none; }
