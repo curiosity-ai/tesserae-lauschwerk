@@ -111,7 +111,7 @@ runs both before it packs.
 **Diffing against upstream.** `scripts/diff-upstream.sh` copies the kept parts of `.reference/` to a
 temporary folder, renames them with `scripts/upstream-names.py`, and diffs that against `sdk/`, so it
 lists only the changes we made: today `crates/engine/README.md`, the SDK's `package.json`,
-`scripts/models.mjs`, `src/loader.ts`, `src/manifest.ts`, `test/browser/network.spec.ts`, and the expected
+`scripts/build.mjs` (`tsc` run through node, not `npx`, which Windows cannot spawn), `scripts/models.mjs`, `src/loader.ts`, `src/manifest.ts`, `test/browser/network.spec.ts`, and the expected
 `Cargo.toml`, `Cargo.lock`, `models.json` and golden hashes. Taking a newer upstream: replace
 `.reference/`, run it with `-u`, re-copy, `python3 scripts/upstream-names.py tree <copied folder>`, carry
 our changes over.
@@ -288,7 +288,12 @@ pieces they are made of.
 - **NuGet:** `.azure-devops/build-nuget-h5.yml`, shaped like Tesserae's pipeline of the same name: on
   `main`, versions the package **`yy.M.<build id>`** (as Tesserae's newer packages, the themes, do),
   installs the pinned Rust toolchain, builds Lauschwerk from source, runs the cargo and vitest suites, builds
-  the package and the sample in Release, runs the Playwright checks against it, and pushes. The version
+  the package and the sample in Release, runs the Playwright checks against it, and pushes. It builds on
+  **Linux**: on Windows the engine's bytes move (cargo spells the source paths in its panic messages with
+  backslashes, and autocrlf rewrites the `models.json` the core embeds), so the hash would not be the one
+  committed - a step fails the build if `engine.generated.ts` changes. Only the push runs on Windows, in a
+  second job, because `NuGetCommand@2` needs Mono and nuget.org's API-key service connection cannot be
+  handed to `dotnet nuget push`. The version
   variable is `buildVersion`, passed as `/p:Version` - never name a pipeline variable after an MSBuild
   property, since every variable is also an environment variable and MSBuild reads those as properties
   (Tesserae's `packageVersion` incident).
