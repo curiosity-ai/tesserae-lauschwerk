@@ -1,0 +1,42 @@
+{
+    // One ES module per chunk plus an entry module, the shape every Tesserae/Curiosity front-end is
+    // built as. Because this project is IsPackable, tps publishes a chunk map rather than an entry that
+    // imports every chunk, so an application that references the package but never opens a microphone
+    // never fetches its JavaScript. A Debug build ignores this and emits one readable bundle.
+    "outputBy": "Module",
+
+    // NOTE: the compiled output of this project needs no "resources" entry - every variant of it is
+    // embedded automatically for a packable project.
+    //
+    // The alkove SDK itself is deliberately NOT a Transpose resource. It is packed into the NuGet
+    // package under alkove/ and copied into the consuming project's output by
+    // buildTransitive/Tesserae.Alkove.targets instead, because:
+    //   - Transpose emits a <script> tag for every ".js" resource. alkove is loaded on demand (nothing
+    //     is fetched until something asks for a microphone or a file), its entry is an ES module, and
+    //     its worker and AudioWorklet must not be injected at all - the SDK creates them itself.
+    //   - A resource is renamed into a ".min.js" variant, and alkove's chunks import each other, and
+    //     the SDK loads its worker and worklet, by the names npm shipped them under.
+    //   - The files live in a folder named after the alkove version (see build/bundle-alkove.mjs),
+    //     which a single-level "files" glob cannot express without knowing the version.
+
+    "cleanOutputFolderBeforeBuildPattern": "*.*",
+    "loader": {
+        "type": "Global"
+    },
+    "generateTypeScript": false,
+    "generateDocumentation": "None",
+    "rules": {
+        "anonymousType": "Plain",
+        "arrayIndex": "Managed",
+        "autoProperty": "Plain",
+        "boxing": "Managed",
+        "externalCast": "Plain",
+        "inlineComment": "Plain",
+        "integer": "Managed",
+        "lambda": "Plain",
+        "useShortForms": true
+    },
+    "sourceMap": {
+        "enabled": false
+    }
+}

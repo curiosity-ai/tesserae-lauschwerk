@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Writes the speech fixtures the Tesserae.Alkove sample and its Playwright checks feed to the
+    models, with Voxwerk (Qwen3-TTS in pure C#), the way Neko synthesizes its voice-overs. Not part
+    of the package or of any build: run it by hand when a fixture changes, then commit the WAVs.
+    See tools/Alkove.TestAudio/README.md.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Voxwerk" Version="26.10.6704" />
+  </ItemGroup>
+</Project>

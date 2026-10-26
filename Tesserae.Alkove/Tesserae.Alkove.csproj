@@ -1,0 +1,68 @@
+<Project Sdk="Transpose.Build.Target/26.10.6986">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefineConstants>TRANSPOSE</DefineConstants>
+    <AssemblyName>Tesserae.Alkove</AssemblyName>
+    <RootNamespace>Tesserae.Alkove</RootNamespace>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <SkipResourcesExtraction>true</SkipResourcesExtraction>
+    <MinifyLocalVariables>true</MinifyLocalVariables>
+    <!-- A library, not a runnable site: tps emits a chunk map and defers the chunks, so an
+         application that references this package but never opens a microphone never fetches them. -->
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Transpose.BCL" Version="26.10.7126" />
+    <PackageReference Include="Transpose.Core" Version="26.10.6989" />
+    <PackageReference Include="Tesserae" Version="2026.10.72651" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>(c) Copyright 2026 Curiosity GmbH - all right reserved</Copyright>
+    <Company>Curiosity GmbH</Company>
+    <Authors>Curiosity GmbH</Authors>
+    <PackageProjectUrl>https://github.com/theolivenbaum/alkove</PackageProjectUrl>
+    <PackageId>Tesserae.Alkove</PackageId>
+    <Description>Tesserae.Alkove is a Tesserae (Transpose C# to JavaScript) wrapper around the alkove web SDK: on-device voice isolation, voice activity, wake words and voiceprints in the browser, as typed C# and ready-made Tesserae components.</Description>
+    <PackageTags>transpose, HTML, UI, components, voice, speech, audio, vad, wake-word, voiceprint, noise-suppression, webrtc, tesserae, alkove</PackageTags>
+    <NoWarn>1701;1702;1591</NoWarn>
+    <!-- alkove's code and weights are Apache-2.0, and this wrapper follows it. -->
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="buildTransitive/Tesserae.Alkove.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <!--
+    alkove is consumed from the pinned `alkove` npm package. Its dist/ is already a browser build, so
+    build/bundle-alkove.mjs only stages it - verbatim, into a folder named after its version - and
+    writes the small module entry that publishes window.alkove. Nothing alkove-related is committed:
+    assets/ is gitignored and regenerated here.
+  -->
+  <PropertyGroup>
+    <AlkoveBundleDir>$(MSBuildProjectDirectory)/assets/js/alkove</AlkoveBundleDir>
+  </PropertyGroup>
+
+  <Target Name="BundleAlkove" BeforeTargets="BeforeBuild" Inputs="package.json;build/bundle-alkove.mjs" Outputs="$(AlkoveBundleDir)/version.txt">
+    <Exec Command="npm install --no-audit --no-fund" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="npm run bundle" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <!--
+    Resolved in a target rather than a static ItemGroup so the glob runs after BundleAlkove has
+    produced the files, and hooked on _GetPackageFiles, where NuGet collects Pack="true" items
+    (GenerateNuspec is too late - see tesserae-pdf's csproj for the same note).
+  -->
+  <Target Name="IncludeAlkoveInPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="BundleAlkove">
+    <ItemGroup>
+      <None Include="$(AlkoveBundleDir)/**" Pack="true" PackagePath="alkove/" />
+    </ItemGroup>
+  </Target>
+</Project>
