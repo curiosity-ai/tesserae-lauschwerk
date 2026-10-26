@@ -26,6 +26,10 @@ namespace Tesserae.Lauschwerk
 
         private const double DEFAULT_SECONDS = 5;
 
+        // Bits of a column's flag: Cue heard speech, something marked it
+        private const byte SPEECH = 1;
+        private const byte MARKED = 2;
+
         private static AudioContext _sharedContext;
 
         private readonly HTMLElement       _root;
@@ -135,6 +139,43 @@ namespace Tesserae.Lauschwerk
 
         public bool IsSpeaking => _speaking;
 
+        /// <summary>How many times <see cref="Mark"/> has been called since the last <see cref="Clear"/>.</summary>
+        public int Marks { get; private set; }
+
+        /// <summary>
+        /// Highlights a stretch of what is already on screen, given as seconds before now (<paramref name="secondsAgoStart"/> is the
+        /// older end). For marking the moment something was recognized: the event arrives after the audio it is about.
+        /// </summary>
+        public LiveWaveform Mark(double secondsAgoStart, double secondsAgoEnd)
+        {
+            var from = Math.Max(0, (int)Math.Floor(Math.Min(secondsAgoStart, secondsAgoEnd) * COLUMNS_PER_SECOND));
+            var to   = Math.Min(_filled - 1, (int)Math.Ceiling(Math.Max(secondsAgoStart, secondsAgoEnd) * COLUMNS_PER_SECOND));
+
+            for (var i = from; i <= to; i++)
+            {
+                var src = ((_head - 1 - i) % _columns + _columns) % _columns;
+                _speech[(uint)src] = (byte)(_speech[(uint)src] | MARKED);
+            }
+
+            Marks++;
+            _root.setAttribute("data-marks", Marks.ToString());
+            _dirty = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Highlights where a wake word was heard, from its event on the bound input's clock (see <see cref="Bind"/>). The word as the
+        /// engine placed it, with a little around it so it reads on a short word.
+        /// </summary>
+        public LiveWaveform MarkWake(WakeEvent wake)
+        {
+            if (_input is null || wake is null) return this;
+
+            var now = _input.Now();
+
+            return Mark(now - wake.End - 0.05, now - wake.Start + 0.05);
+        }
+
         /// <summary>The peak of the newest column, 0 to 1.</summary>
         public double Level => _filled == 0 ? 0 : _peaks[(uint)((_head - 1 + _columns) % _columns)];
 
@@ -150,6 +191,8 @@ namespace Tesserae.Lauschwerk
             _filled = 0;
             _pending = 0;
             _pendingPeak = 0;
+            Marks = 0;
+            _root.setAttribute("data-marks", "0");
             _dirty = true;
             return this;
         }
@@ -268,7 +311,7 @@ namespace Tesserae.Lauschwerk
         private void Push(double peak, bool speech)
         {
             _peaks[(uint)_head]  = (float)Math.Min(1, peak);
-            _speech[(uint)_head] = speech ? (byte)1 : (byte)0;
+            _speech[(uint)_head] = speech ? SPEECH : (byte)0;
             _head = (_head + 1) % _columns;
             if (_filled < _columns) _filled++;
         }
@@ -324,8 +367,18 @@ namespace Tesserae.Lauschwerk
                 var src  = ((_head - 1 - i) % _columns + _columns) % _columns;
                 var x    = width - (i + 1) * colWidth;
                 var half = Math.Max(minHalf, _peaks[(uint)src] * mid);
+                var flag = _speech[(uint)src];
 
-                ctx.fillStyle = _speech[(uint)src] != 0 ? primary : muted;
+                // A marked stretch is a band behind the bars, so it reads whatever the bars do
+                if ((flag & MARKED) != 0)
+                {
+                    ctx.globalAlpha = 0.22;
+                    ctx.fillStyle   = primary;
+                    ctx.fillRect(Math.Round(x), 0, Math.Ceiling(colWidth), height);
+                    ctx.globalAlpha = 1;
+                }
+
+                ctx.fillStyle = flag != 0 ? primary : muted;
                 ctx.fillRect(Math.Round(x), mid - half, bar, half * 2);
             }
         }
