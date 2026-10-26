@@ -4,124 +4,137 @@ variables:
 trigger:
 - main
 
-pool:
-  vmImage: 'windows-latest'
+jobs:
+# Built on Linux, like the GitHub Pages workflow and the dev sessions: on Windows the engine comes out with
+# other bytes than the ones verified and committed (src/engine.generated.ts) - its panic messages carry
+# source paths, which cargo spells with backslashes there, and git's autocrlf turns models.json, which the
+# core embeds, into CRLF.
+- job: build
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+    submodules: true
+    persistCredentials: true
 
-steps:
-- checkout: self
-  submodules: true
-  persistCredentials: true
+  - task: PowerShell@2
+    displayName: 'Set Version'
+    inputs:
+      targetType: 'inline'
+      script: |
+        # yy.M.build, like the Tesserae packages that started after Tesserae itself (Tesserae.Themes.*).
+        # Never name a variable here after an MSBuild property: every pipeline variable is also exported as
+        # an environment variable, and MSBuild reads those as properties (Tesserae learned this with a
+        # variable called packageVersion). buildVersion is passed explicitly as /p:Version below.
+        $short=$(Get-Date -Format yy.M);
+        Write-Host "##vso[task.setvariable variable=buildVersion]$short.$(build.buildId)"
 
-- task: PowerShell@2
-  displayName: 'Set Version'
-  inputs:
-    targetType: 'inline'
-    script: |
-      # yy.M.build, like the Tesserae packages that started after Tesserae itself (Tesserae.Themes.*).
-      # Never name a variable here after an MSBuild property: every pipeline variable is also exported as
-      # an environment variable, and MSBuild reads those as properties (Tesserae learned this with a
-      # variable called packageVersion). buildVersion is passed explicitly as /p:Version below.
-      $short=$(Get-Date -Format yy.M);
-      Write-Host "##vso[task.setvariable variable=buildVersion]$short.$(build.buildId)"
+  - task: UseDotNet@2
+    displayName: 'Use .NET 11.0 sdk'
+    inputs:
+      packageType: 'sdk'
+      version: '11.x'
+      includePreviewVersions: true
 
-- task: UseDotNet@2
-  displayName: 'Use .NET 11.0 sdk'
-  inputs:
-    packageType: 'sdk'
-    version: '11.x'
-    includePreviewVersions: true
+  - script: |
+      set -e
+      dotnet tool update --global Transpose.Compiler
+      echo "##vso[task.prependpath]$HOME/.dotnet/tools"
+    displayName: 'install Transpose compiler'
 
-- task: NuGetToolInstaller@1
+  - task: NodeTool@0
+    displayName: 'Use Node.js 22.x'
+    inputs:
+      versionSpec: '22.x'
 
-- task: CmdLine@2
-  displayName: 'install Transpose compiler'
-  inputs:
-    script: 'dotnet tool update --global Transpose.Compiler'
-
-- task: NodeTool@0
-  displayName: 'Use Node.js 22.x'
-  inputs:
-    versionSpec: '22.x'
-
-# The toolchain sdk/rust-toolchain.toml pins (wasm32 target included): the rustc upstream releases with,
-# which is what makes lauschwerk-engine.wasm come out byte-identical to theirs.
-- task: CmdLine@2
-  displayName: 'install Rust toolchain'
-  inputs:
-    script: |
+  # The toolchain sdk/rust-toolchain.toml pins (wasm32 target included): the rustc upstream releases with,
+  # which is what makes lauschwerk-engine.wasm come out byte-identical to theirs.
+  - script: |
+      set -e
       rustup toolchain install
       rustc --version
-    workingDirectory: '$(Build.SourcesDirectory)/sdk/'
+    displayName: 'install Rust toolchain'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk'
 
-# cargo -> lauschwerk-engine.wasm, esbuild -> the SDK's dist/ (upstream's scripts/build.mjs, with tsc run
-# through node: npx is a .cmd here, which the script's execFileSync cannot start).
-# A step of its own so it shows in the log; the BuildLauschwerkSdk MSBuild target then skips it as up to date.
-- task: CmdLine@2
-  displayName: 'build lauschwerk from source (Rust to WebAssembly, web SDK)'
-  inputs:
-    script: |
-      call npm ci --no-audit --no-fund
-      if errorlevel 1 exit /b 1
+  # cargo -> lauschwerk-engine.wasm, esbuild -> the SDK's dist/. A step of its own so it shows in the log;
+  # the BuildLauschwerkSdk MSBuild target then skips it as up to date.
+  - script: |
+      set -e
+      npm ci --no-audit --no-fund
       node scripts/build.mjs
-    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk/'
+    displayName: 'build lauschwerk from source (Rust to WebAssembly, web SDK)'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
 
-- task: CmdLine@2
-  displayName: 'test the engine and the core (cargo)'
-  inputs:
-    script: 'cargo test --release -p lauschwerk-engine -p lauschwerk-core'
-    workingDirectory: '$(Build.SourcesDirectory)/sdk/'
+  # The engine built here must be the one committed: a difference means engine.generated.ts is stale.
+  - script: git diff --exit-code -- src/engine.generated.ts src/models.generated.ts
+    displayName: 'check the engine matches the committed hash'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
 
-# The SDK's unit tests compare the wasm's outputs with the native engine's, bit for bit, on the models.
-- task: CmdLine@2
-  displayName: 'test the web SDK (vitest)'
-  inputs:
-    script: |
+  - script: cargo test --release -p lauschwerk-engine -p lauschwerk-core
+    displayName: 'test the engine and the core (cargo)'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk'
+
+  # The SDK's unit tests compare the wasm's outputs with the native engine's, bit for bit, on the models.
+  - script: |
+      set -e
       node dist/cli.js models .cache/models
-      if errorlevel 1 exit /b 1
       npx vitest run
-    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk/'
+    displayName: 'test the web SDK (vitest)'
+    workingDirectory: '$(Build.SourcesDirectory)/sdk/packages/lauschwerk'
 
-- task: CmdLine@2
-  displayName: 'restore Tesserae.Lauschwerk project'
-  inputs:
-    script: 'dotnet restore $(Build.SourcesDirectory)\Tesserae.Lauschwerk\Tesserae.Lauschwerk.csproj'
-    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Lauschwerk/'
+  - script: dotnet restore Tesserae.Lauschwerk/Tesserae.Lauschwerk.csproj
+    displayName: 'restore Tesserae.Lauschwerk project'
 
-- task: CmdLine@2
-  displayName: 'Build Tesserae.Lauschwerk'
-  inputs:
-    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Lauschwerk\Tesserae.Lauschwerk.csproj -c $(buildConfiguration) /p:Version=$(buildVersion)'
-    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Lauschwerk/'
+  - script: dotnet build Tesserae.Lauschwerk/Tesserae.Lauschwerk.csproj -c $(buildConfiguration) /p:Version=$(buildVersion)
+    displayName: 'Build Tesserae.Lauschwerk'
 
-# Not packed, but the only thing that exercises Tesserae.Lauschwerk.targets copying lauschwerk (and the
-# self-hosted models) into an application's output - and the site the browser checks below run on.
-- task: CmdLine@2
-  displayName: 'Build Tesserae.Lauschwerk.Sample'
-  inputs:
-    script: 'dotnet build $(Build.SourcesDirectory)\Tesserae.Lauschwerk.Sample\Tesserae.Lauschwerk.Sample.csproj -c $(buildConfiguration)'
-    workingDirectory: '$(Build.SourcesDirectory)/Tesserae.Lauschwerk.Sample/'
+  # Not packed, but the only thing that exercises Tesserae.Lauschwerk.targets copying lauschwerk (and the
+  # self-hosted models) into an application's output - and the site the browser checks below run on.
+  - script: dotnet build Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj -c $(buildConfiguration)
+    displayName: 'Build Tesserae.Lauschwerk.Sample'
 
-# Chromium plays the synthesized speech as the microphone: every component, live and on files.
-- task: CmdLine@2
-  displayName: 'browser checks (Playwright)'
-  inputs:
-    script: |
-      call npm ci --no-audit --no-fund
-      if errorlevel 1 exit /b 1
-      call npx playwright install chromium
-      if errorlevel 1 exit /b 1
-      set LAUSCHWERK_SITE=..\Tesserae.Lauschwerk.Sample\bin\Release\netstandard2.0\tps
-      npx playwright test
-    workingDirectory: '$(Build.SourcesDirectory)/tests/'
+  # Chromium plays the synthesized speech as the microphone: every component, live and on files.
+  - script: |
+      set -e
+      npm ci --no-audit --no-fund
+      npx playwright install --with-deps chromium
+      LAUSCHWERK_SITE=../Tesserae.Lauschwerk.Sample/bin/Release/netstandard2.0/tps npx playwright test
+    displayName: 'browser checks (Playwright)'
+    workingDirectory: '$(Build.SourcesDirectory)/tests'
 
-- task: CmdLine@2
-  inputs:
-    script: 'dir $(Build.SourcesDirectory)\Tesserae.Lauschwerk\bin\ /S'
+  # The package name comes from the PackageID, not the project name.
+  - script: |
+      set -e
+      ls -R Tesserae.Lauschwerk/bin
+      find Tesserae.Lauschwerk/bin -name 'Tesserae.Lauschwerk.$(buildVersion).nupkg' -exec cp {} '$(Build.ArtifactStagingDirectory)' \;
+      ls '$(Build.ArtifactStagingDirectory)'/*.nupkg
+    displayName: 'stage the package'
 
-- task: NuGetCommand@2
-  displayName: 'push Tesserae.Lauschwerk to nuget'
-  inputs:
-    command: 'push'
-    packagesToPush: '**/*/Tesserae.Lauschwerk.$(buildVersion).nupkg' # The package name comes from the PackageID, not project name
-    nuGetFeedType: 'external'
-    publishFeedCredentials: 'nuget-curiosity-org'
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifact: 'nupkg'
+
+# NuGetCommand@2 needs Mono, which the Ubuntu images no longer ship, and the nuget.org service connection
+# (an API key) cannot be handed to dotnet nuget push - so the push alone runs on Windows.
+- job: push
+  dependsOn: build
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - checkout: none
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: 'nupkg'
+      path: '$(Pipeline.Workspace)/nupkg'
+
+  - task: NuGetToolInstaller@1
+
+  - task: NuGetCommand@2
+    displayName: 'push Tesserae.Lauschwerk to nuget'
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Pipeline.Workspace)/nupkg/*.nupkg'
+      nuGetFeedType: 'external'
+      publishFeedCredentials: 'nuget-curiosity-org'
