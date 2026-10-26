@@ -12,18 +12,9 @@
     to Tesserae.Lauschwerk/assets/js/lauschwerk - the (gitignored) staging output. That lets
     Tesserae.Lauschwerk.Sample import this file directly and exercise exactly the copy a real consumer gets.
 
-    Self-hosting the models (opt-in):
-
-        <PropertyGroup>
-          <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
-          <LauschwerkModels>focus cue</LauschwerkModels>   (optional; the default is all five)
-        </PropertyGroup>
-
-    downloads the models once per lauschwerk version (from Hugging Face, at the revision the SDK pins,
-    sha256-checked by lauschwerk's own `lauschwerk models` command), keeps them under obj/, and copies them to
-    assets/js/lauschwerk/models. Call LauschwerkJs.UseSelfHostedModels() before the first input so the SDK
-    fetches them from there. Needs node on the build machine. Without it the SDK downloads them from
-    Hugging Face in the browser - fine for trying it out, and each user then sends Hugging Face their IP.
+    The five models (7.5 MB) are part of the payload, in models/, so they are copied too and the SDK loads them
+    from assets/js/lauschwerk/models by default (LauschwerkJs.ModelBaseUrl): the visitor's browser never talks to a
+    third party. Set LauschwerkJs.ModelBaseUrl to serve them from somewhere else.
   -->
   <PropertyGroup>
     <_LauschwerkPackagedDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..', 'lauschwerk'))</_LauschwerkPackagedDir>
@@ -60,29 +51,5 @@
           OverwriteReadOnlyFiles="true" />
 
     <Message Importance="normal" Text="Tesserae.Lauschwerk: copied lauschwerk $(_LauschwerkVersion) from $(_LauschwerkSourceDir) to $(LauschwerkAssetsOutputDir)" />
-  </Target>
-
-  <!--
-    AfterTargets rather than a CallTarget from the copy: a called target does not see the properties
-    the caller set while running (_LauschwerkVersion, _LauschwerkSourceDir), one that runs after it does.
-  -->
-  <Target Name="_LauschwerkSelfHostModels" AfterTargets="_CopyLauschwerkAssets" Condition="'$(LauschwerkSelfHostModels)' == 'true' and '$(DesignTimeBuild)' != 'true'">
-    <PropertyGroup>
-      <_LauschwerkModelCache>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'lauschwerk-models', '$(_LauschwerkVersion)'))</_LauschwerkModelCache>
-      <_LauschwerkModelMarker>$(_LauschwerkModelCache).done-$(LauschwerkModels.Replace(' ', '-'))</_LauschwerkModelMarker>
-      <_LauschwerkCli>$(_LauschwerkSourceDir)v$(_LauschwerkVersion)/cli.js</_LauschwerkCli>
-    </PropertyGroup>
-
-    <!-- Once per version and model set: the marker is only written after the command succeeded. -->
-    <Exec Condition="!Exists('$(_LauschwerkModelMarker)')" Command="node &quot;$(_LauschwerkCli)&quot; models &quot;$(_LauschwerkModelCache.TrimEnd('\').TrimEnd('/'))&quot; $(LauschwerkModels)" />
-    <Touch Condition="!Exists('$(_LauschwerkModelMarker)')" Files="$(_LauschwerkModelMarker)" AlwaysCreate="true" />
-
-    <ItemGroup>
-      <_LauschwerkModelFiles Include="$(_LauschwerkModelCache)*.alk" />
-    </ItemGroup>
-
-    <Copy SourceFiles="@(_LauschwerkModelFiles)" DestinationFolder="$(LauschwerkAssetsOutputDir)models" SkipUnchangedFiles="true" />
-
-    <Message Importance="normal" Text="Tesserae.Lauschwerk: self-hosted @(_LauschwerkModelFiles->Count()) model(s) in $(LauschwerkAssetsOutputDir)models" />
   </Target>
 </Project>

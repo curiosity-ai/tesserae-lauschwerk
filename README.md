@@ -24,8 +24,6 @@ which speaks.
 using Tesserae.Lauschwerk;
 using static Tesserae.Lauschwerk.LauschwerkUI;
 
-LauschwerkJs.UseSelfHostedModels();                   // with <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
-
 // a call: only the user's voice goes out
 var call = await LauschwerkJs.CreateCallInputAsync(new CallInputSettings { Learn = true });
 pc.addTrack(call.Track);
@@ -59,8 +57,8 @@ Lauschwerk began as a fork of [alkove](https://github.com/alkove-ai/alkove) by E
 core, web SDK and model weights are that project's work, under Apache-2.0. This repository renamed it, builds
 it from source, and adds the Tesserae package, the gallery and the tests. Upstream as forked is kept,
 unchanged and unbuilt, in [`.reference/`](./.reference), so `scripts/diff-upstream.sh` can show what we
-changed. The models are still downloaded from upstream's Hugging Face repositories (or self-hosted from
-them at build time).
+changed. The five models are upstream's, fetched once from its Hugging Face repositories
+(`sdk/crates/core/models.json`) and committed under `Tesserae.Lauschwerk/models/`, so the package carries them.
 
 Apache-2.0, like upstream. See [LICENSE](./LICENSE) and [NOTICE](./NOTICE). The license grants no right to
 upstream's name or logo, which this project does not use.

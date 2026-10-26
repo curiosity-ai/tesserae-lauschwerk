@@ -71,7 +71,7 @@
     <Exec Command="node scripts/build.mjs" WorkingDirectory="$(LauschwerkSdkPackageDir)" />
   </Target>
 
-  <Target Name="BundleLauschwerk" BeforeTargets="BeforeBuild" DependsOnTargets="BuildLauschwerkSdk" Inputs="build/bundle-lauschwerk.mjs;$(LauschwerkSdkPackageDir)/dist/lauschwerk-engine.wasm" Outputs="$(LauschwerkBundleDir)/version.txt">
+  <Target Name="BundleLauschwerk" BeforeTargets="BeforeBuild" DependsOnTargets="BuildLauschwerkSdk" Inputs="build/bundle-lauschwerk.mjs;models/*.alk;$(LauschwerkSdkPackageDir)/dist/lauschwerk-engine.wasm" Outputs="$(LauschwerkBundleDir)/version.txt">
     <Exec Command="node build/bundle-lauschwerk.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
 

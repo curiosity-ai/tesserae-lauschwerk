@@ -5,11 +5,6 @@
     <AssemblyName>app</AssemblyName>
     <RootNamespace>Tesserae.Lauschwerk.Sample</RootNamespace>
     <MinifyLocalVariables>true</MinifyLocalVariables>
-
-    <!-- The gallery hosts its own models (assets/js/lauschwerk/models), as a production app should: the
-         visitor's browser then talks to this site only, never to Hugging Face. Downloaded once per
-         lauschwerk version into obj/ by Tesserae.Lauschwerk.targets. -->
-    <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
   </PropertyGroup>
 
   <ItemGroup>

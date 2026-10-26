@@ -18,23 +18,13 @@ no telemetry.
 The build copies the SDK into your site at `assets/js/lauschwerk/` (about 620 KB, the engine included).
 Nothing is fetched until something needs it.
 
-**Host the models yourself** (recommended; 7.5 MB for all five, downloaded once per lauschwerk version at
-build time, sha256-checked - needs `node` on the build machine):
-
-```xml
-<PropertyGroup>
-  <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels>
-  <!-- optional, default all five: -->
-  <LauschwerkModels>focus cue spot</LauschwerkModels>
-</PropertyGroup>
-```
+**The models ship in the package** (7.5 MB for all five, sha256-checked at build) and the build copies them to
+`assets/js/lauschwerk/models/`, where the SDK loads them from by default: nothing is downloaded from a third
+party, and no user sends anyone their IP. To serve them from somewhere else (a CDN):
 
 ```csharp
-LauschwerkJs.UseSelfHostedModels();   // once, before the first input
+LauschwerkJs.ModelBaseUrl = "https://models.example.com/lauschwerk";   // once, before the first input
 ```
-
-Without it the SDK downloads the models from Hugging Face in the browser - fine for trying it out, but
-each user then sends Hugging Face their IP.
 
 ## A call (WebRTC)
 

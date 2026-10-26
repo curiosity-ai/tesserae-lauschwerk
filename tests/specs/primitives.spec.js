@@ -20,7 +20,7 @@ test('reports support, the bundled version and self-hosted models, and preloads'
   await open(page, 'Models and Support');
   await expect(page.locator('#lw-support')).toContainText('the models will run');
   await expect(page.locator('#lw-version')).toContainText(/lauschwerk \d+\.\d+\.\d+, engine sha256 [0-9a-f]{12}/);
-  await expect(page.locator('#lw-models')).toContainText('Self-hosted models');
+  await expect(page.locator('#lw-models')).toContainText('Models from');
 
   for (const preloader of await page.locator('.tss-lw-preload').all()) {
     if ((await preloader.getAttribute('data-ready')) !== 'true') await button(preloader, 'Download').click();

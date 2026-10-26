@@ -26,7 +26,7 @@ namespace Tesserae.Lauschwerk.Sample
                 var s = await LauschwerkJs.SupportAsync();
                 support.Text = "secure page: " + Yes(s.Secure) + ", AudioWorklet: " + Yes(s.Worklet) + ", WebAssembly SIMD: " + Yes(s.Simd) + (s.Full ? " - the models will run." : " - inputs will stay raw.");
                 version.Text = "lauschwerk " + LauschwerkJs.Version + ", engine sha256 " + LauschwerkJs.EngineSha256.Substring(0, 12) + "… from " + LauschwerkJs.BaseUrl;
-                models.Text  = LauschwerkJs.ModelBaseUrl is null ? "Models from Hugging Face" : "Self-hosted models: " + LauschwerkJs.ModelBaseUrl;
+                models.Text  = "Models from " + LauschwerkJs.ModelBaseUrl;
                 mic.Text     = "Microphone permission: " + (await LauschwerkJs.MicPermissionAsync()).ToString().ToLower();
             }
 
@@ -38,7 +38,7 @@ namespace Tesserae.Lauschwerk.Sample
                .FlatSection(VStack().WS().Children(
                     Card(VStack().Children(
                         TextBlock("Nothing is fetched until something needs it. The SDK (a module, ~600 KB with its engine) loads on first use; the models (7.5 MB together) load per usage, checked by sha256 and kept in the browser's Cache Storage."),
-                        TextBlock("This gallery hosts its own models: <LauschwerkSelfHostModels>true</LauschwerkSelfHostModels> in the csproj downloads them at build time, and LauschwerkJs.UseSelfHostedModels() points the SDK at them. Without it they come from Hugging Face.").PT(8))).SetTitle("Overview"),
+                        TextBlock("The five models ship inside the NuGet package and the build copies them next to the SDK (assets/js/lauschwerk/models), so the visitor's browser only ever talks to this site. LauschwerkJs.ModelBaseUrl points the SDK somewhere else (a CDN, a mirror).").PT(8))).SetTitle("Overview"),
                     Card(VStack().WS().Gap(4.px()).Children(support, version, models, mic)).SetTitle("This browser"),
                     Card(VStack().WS().Gap(12.px()).Children(
                         ModelPreloader(LauschwerkUsage.Call, voiceprint: true),
@@ -47,7 +47,7 @@ namespace Tesserae.Lauschwerk.Sample
                     Card(VStack().WS().Children(
                         TextBlock("Global diagnostics (config.late, models.default-host, ...) appear here.").Small().Secondary(),
                         diags)).SetTitle("Diagnostics"),
-                    Card(CallInputSample.Code(@"LauschwerkJs.UseSelfHostedModels();                 // before the first input
+                    Card(CallInputSample.Code(@"LauschwerkJs.ModelBaseUrl = ""https://models.example.com/lauschwerk"";   // optional, before the first input
 await LauschwerkJs.PreloadAsync(LauschwerkUsage.Call, voiceprint: true, progress: (loaded, total) => ...);
 var offline = await LauschwerkJs.IsCachedAsync(LauschwerkUsage.Call);")).SetTitle("Usage")))
                .SeeAlso(typeof(CallInputSample), typeof(ProcessFileSample));
