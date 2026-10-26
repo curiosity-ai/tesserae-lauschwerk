@@ -80,7 +80,7 @@ namespace Tesserae.Alkove
         public static async Task<WordEnrollment> EnrollWordAsync(string text, SpeechLanguage language = SpeechLanguage.English, int takes = 3, InputSourceSettings source = null)
         {
             await LoadAsync();
-            var options = new EnrollWordOptions { lang = new[] { EnumNames.Code(language) }, takes = takes };
+            var options = new EnrollWordOptions { lang = EnumNames.Codes(new[] { language }), takes = takes };
             if (source?.Stream is object) options.stream = source.Stream;
             if (!string.IsNullOrEmpty(source?.DeviceId)) options.deviceId = source.DeviceId;
             return new WordEnrollment(AlkoveLib.Spot.enroll(text, options));

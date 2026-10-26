@@ -443,3 +443,4 @@ Tesserae.Alkove/assets/
 _site/
 tests/test-results/
 tests/playwright-report/
+tests/node_modules/

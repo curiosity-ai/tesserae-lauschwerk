@@ -1,3 +1,4 @@
+using Transpose;
 using static Transpose.Core.dom;
 
 namespace Tesserae.Alkove
@@ -188,11 +189,16 @@ namespace Tesserae.Alkove
             return o;
         }
 
+        /// <summary>
+        /// The words as alkove takes them. Through <c>Script.ToArray</c>, because the SDK posts them to its
+        /// worker, and a C# array carries a <c>$type</c> function that <c>postMessage</c> cannot clone -
+        /// the whole call fails with a DataCloneError quoting a constructor body.
+        /// </summary>
         internal static object[] WordList(WakeWord[] words)
         {
             var list = new object[words?.Length ?? 0];
             for (var i = 0; i < list.Length; i++) list[i] = words[i].ToJs();
-            return list;
+            return Script.ToArray(list);
         }
     }
 }

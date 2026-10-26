@@ -22,7 +22,10 @@ namespace Tesserae.Alkove
     internal interface IJsError
     {
         string name { get; }
-        string code { get; }
+
+        /// <summary>A string on an AlkoveError - but a number on a DOMException (a DataCloneError is 25), so read it through <see cref="AlkoveException.FromJs"/>.</summary>
+        object code { get; }
+
         string message { get; }
     }
 
@@ -78,7 +81,10 @@ namespace Tesserae.Alkove
             string message = js.message;
             if (string.IsNullOrEmpty(message) && error is Exception e) message = e.Message;
 
-            return new AlkoveException(js.code, js.name, message);
+            // Only alkove's own codes are strings; a DOMException's legacy numeric code means nothing here.
+            var code = Script.TypeOf(js.code) == "string" ? (string)js.code : null;
+
+            return new AlkoveException(code, js.name, message);
         }
     }
 }

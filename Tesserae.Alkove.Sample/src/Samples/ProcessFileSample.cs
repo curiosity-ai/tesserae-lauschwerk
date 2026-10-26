@@ -1,8 +1,9 @@
 using System;
-using System.Linq;
 using Tesserae;
+using Tesserae.Alkove;
 using static Transpose.Core.dom;
 using static Tesserae.UI;
+using static Tesserae.Alkove.AlkoveUI;
 using static Tesserae.Alkove.Sample.SamplesHelper;
 
 namespace Tesserae.Alkove.Sample
@@ -14,24 +15,36 @@ namespace Tesserae.Alkove.Sample
 
         public ProcessFileSample()
         {
-            var result = Readout("alk-process-result");
-            var run = Button("Process speech.wav").Primary().OnClick(async () =>
+            var processor = AudioFileProcessor();
+            processor.Render().id = "alk-file-processor";
+
+            var recordings = HStack().WS().Wrap().Gap(8.px());
+            foreach (var (label, url) in RECORDINGS)
             {
-                result.Text = "processing...";
-                try
+                var u = url;
+                recordings.Add(Button(label).SetIcon(UIcons.Waveform).OnClick(() =>
                 {
-                    var r = await AlkoveJs.ProcessUrlAsync(SPEECH_WAV, new ProcessSettings { Focus = true, Cue = true });
-                    result.Text = "speech: " + string.Join(", ", r.Speech.Select(s => s.Start.ToString("0.00") + "-" + s.End.ToString("0.00"))) + " | duration " + r.Audio.Duration.ToString("0.00");
-                }
-                catch (Exception e)
-                {
-                    result.Text = "error: " + e.Message;
-                }
-            });
+                    processor.LookFor(u == WAKE_WAV || u == WAKE_TAKES_WAV || u == WAKE_OTHER_WAV ? "Hey Nova" : "");
+                    processor.LoadUrlAsync(u).FireAndForget();
+                }));
+            }
 
             _content = SectionStack().Secondary()
-               .SampleTitle(typeof(ProcessFileSample), UIcons.FileAudio, "Run the models over a recording")
-               .FlatSection(Card(VStack().Children(run, result)).SetTitle("Demo"));
+               .SampleTitle(typeof(ProcessFileSample), UIcons.FileAudio, "Run the models over a recording, faster than real time")
+               .FlatSection(VStack().WS().Children(
+                    Card(VStack().Children(
+                        TextBlock("AlkoveJs.ProcessAsync runs Focus, Cue and Spot over a whole recording in alkove's background worker and gives the same output the live inputs give for the same audio: the cleaned audio, where speech is, and where a word was heard. Anything the browser decodes works; the file never leaves the page."))).SetTitle("Overview"),
+                    Card(VStack().WS().Children(
+                        TextBlock("Try one of the gallery's recordings, or pick a file of your own:").Small().Secondary(),
+                        recordings.PB(8),
+                        processor,
+                        SampleHint("Before is the recording as it was; after is what Focus kept. The shading is where Cue heard speech, a line where Spot heard the word. Click a waveform to play it."))).SetTitle("Demo"),
+                    Card(CallInputSample.Code(@"var r = await AlkoveJs.ProcessAsync(file, new ProcessSettings { Focus = true, Cue = true, Words = new[] { word } });
+r.Audio;   // AudioClip, 16 kHz, processed
+r.Speech;  // SpeechSpan[]
+r.Wakes;   // WakeEvent[]
+r.ToWav(); // Blob")).SetTitle("Usage")))
+               .SeeAlso(typeof(CallInputSample), typeof(VerifyVoicesSample), typeof(WakeWordSample));
         }
 
         public HTMLElement Render() => _content.Render();

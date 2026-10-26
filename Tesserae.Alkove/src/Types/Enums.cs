@@ -156,12 +156,13 @@ namespace Tesserae.Alkove
             }
         }
 
+        /// <summary>Plain JavaScript arrays (<c>Script.ToArray</c>): alkove posts them to its worker.</summary>
         internal static string[] Codes(SpeechLanguage[] languages)
         {
-            if (languages is null || languages.Length == 0) return new[] { "en" };
+            if (languages is null || languages.Length == 0) return Transpose.Script.ToArray(new[] { "en" });
             var codes = new string[languages.Length];
             for (var i = 0; i < languages.Length; i++) codes[i] = Code(languages[i]);
-            return codes;
+            return Transpose.Script.ToArray(codes);
         }
 
         /// <summary>A display name for a mode, as the gallery and the components print it.</summary>
