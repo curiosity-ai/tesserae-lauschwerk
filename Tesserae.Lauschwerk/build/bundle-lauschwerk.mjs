@@ -16,9 +16,9 @@
  *     models/             the five .alk models, from Tesserae.Lauschwerk/models (sha256-checked against
  *                         sdk/crates/core/models.json); LauschwerkJs.ModelBaseUrl points here by default.
  *     v<version>/         lauschwerk's dist, verbatim: index.js, chunk-*.js, api-*.js, assets-*.js,
- *                         node-*.js, lauschwerk-worker.js, lauschwerk-worklet.js, lauschwerk-engine.wasm, and
- *                         cli.js (the Node model downloader - never served to a page, see
- *                         buildTransitive/Tesserae.Lauschwerk.targets).
+ *                         node-*.js, lauschwerk-worker.js, lauschwerk-worklet.js, lauschwerk-engine.wasm.
+ *                         Not cli.js, the Node model downloader: never served to a page, so it is not
+ *                         staged (the whole folder is a Transpose resource, see tps.json).
  *
  * Why a versioned folder. lauschwerk creates its worker with `new Worker(url)` and its worklet with
  * `audioWorklet.addModule(url)` from inside the SDK, so they are not fetched through Transpose's
@@ -58,13 +58,16 @@ const copied = [];
 for (const file of readdirSync(dist)) {
   // Declarations are for TypeScript consumers; the C# side declares the surface itself.
   if (file.endsWith('.d.ts') || !/\.(js|wasm)$/.test(file)) continue;
+  // cli.js is the Node model downloader: never something a page loads. It stays in dist (checked below),
+  // and is not staged, because a resource glob has no way to leave one file out.
+  if (file === 'cli.js') continue;
   cpSync(join(dist, file), join(versioned, file));
   bytes += readFileSync(join(dist, file)).length;
   copied.push(file);
 }
 
 for (const required of ['index.js', 'lauschwerk-worker.js', 'lauschwerk-worklet.js', 'lauschwerk-engine.wasm', 'cli.js']) {
-  if (!copied.includes(required)) {
+  if (!existsSync(join(dist, required))) {
     console.error(`lauschwerk ${version}: dist/${required} is missing - the package layout changed, re-check build/bundle-lauschwerk.mjs.`);
     process.exit(1);
   }

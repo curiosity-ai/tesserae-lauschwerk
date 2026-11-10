@@ -88,8 +88,8 @@ jobs:
   - script: dotnet build Tesserae.Lauschwerk/Tesserae.Lauschwerk.csproj -c $(buildConfiguration) /p:Version=$(buildVersion)
     displayName: 'Build Tesserae.Lauschwerk'
 
-  # Not packed, but the only thing that exercises Tesserae.Lauschwerk.targets copying lauschwerk (and the
-  # packaged models) into an application's output - and the site the browser checks below run on.
+  # Not packed, but the only thing that exercises the package's lauschwerk resource (the SDK and the
+  # packaged models) reaching an application's output - and the site the browser checks below run on.
   - script: dotnet build Tesserae.Lauschwerk.Sample/Tesserae.Lauschwerk.Sample.csproj -c $(buildConfiguration)
     displayName: 'Build Tesserae.Lauschwerk.Sample'
 
