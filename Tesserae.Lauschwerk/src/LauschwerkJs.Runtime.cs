@@ -17,7 +17,7 @@ namespace Tesserae.Lauschwerk
     {
         private const string DEFAULT_ASSETS_PATH = "assets/js/lauschwerk";
 
-        /// <summary>Where the models shipped in the package are copied to at build (see buildTransitive/Tesserae.Lauschwerk.targets).</summary>
+        /// <summary>Where the models shipped in the package are extracted to in a site (they are part of the package's lauschwerk resource, see tps.json).</summary>
         public const string SELF_HOSTED_MODELS_PATH = DEFAULT_ASSETS_PATH + "/models";
 
         private static string _assetsPath = DEFAULT_ASSETS_PATH;
@@ -29,8 +29,8 @@ namespace Tesserae.Lauschwerk
 
         /// <summary>
         /// Where the staged SDK lives, relative to the page: the folder holding <c>lauschwerk.js</c> and the
-        /// versioned folder beside it. Defaults to <c>assets/js/lauschwerk</c>, which is where the build
-        /// copies it. Set it before anything loads.
+        /// versioned folder beside it. Defaults to <c>assets/js/lauschwerk</c>, which is where the compiler
+        /// extracts it. Set it before anything loads.
         /// </summary>
         public static string AssetsPath
         {

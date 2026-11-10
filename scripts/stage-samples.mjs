@@ -2,8 +2,8 @@
  * Stage the compiled sample into `_site/` for publishing to GitHub Pages.
  *
  * The Transpose output folder is already a complete, self-contained site - `tps.json` generates
- * an index.html referencing every script relatively, and Tesserae.Lauschwerk.targets copies lauschwerk
- * into `assets/js/lauschwerk/` beside it - so staging is a copy plus two small fixes:
+ * an index.html referencing every script relatively, and the compiler extracts lauschwerk (a package
+ * resource) into `assets/js/lauschwerk/` beside it - so staging is a copy plus two small fixes:
  *
  *   - `.tps-manifest.<app>.json` is dropped. It is the compiler's own record of what it wrote
  *     (used to clean the output folder on the next build), not something the page fetches.
@@ -35,7 +35,7 @@ if (!existsSync(join(SOURCE, 'index.html'))) {
 // after the compiler has written the rest - so an output folder without it is a half-built site,
 // not a configuration choice. Fail loudly rather than publish a gallery whose SDK cannot load.
 if (!existsSync(join(SOURCE, 'assets/js/lauschwerk/lauschwerk.js'))) {
-  console.error(`No assets/js/lauschwerk/lauschwerk.js in ${SOURCE} - the lauschwerk asset copy did not run.`);
+  console.error(`No assets/js/lauschwerk/lauschwerk.js in ${SOURCE} - the lauschwerk resource was not extracted.`);
   process.exit(1);
 }
 

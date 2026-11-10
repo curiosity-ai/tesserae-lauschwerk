@@ -19,14 +19,6 @@
   </ItemGroup>
 
   <!--
-    A PackageReference would get this automatically (it lives in the package's buildTransitive/), but
-    a ProjectReference does not import the referenced project's targets - so the sample imports it by
-    hand. This is the same file a real consumer runs, which is the point: the sample exercises the
-    actual asset copy (and the model self-hosting) rather than a bespoke one.
-  -->
-  <Import Project="..\Tesserae.Lauschwerk\buildTransitive\Tesserae.Lauschwerk.targets" />
-
-  <!--
     The speech recordings the gallery plays to the models, synthesized by tools/Lauschwerk.TestAudio.
     Safe alongside the compiler's own output cleaning, which tps.json scopes to "*.js|*.css".
   -->

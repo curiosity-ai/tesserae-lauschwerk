@@ -37,7 +37,6 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="buildTransitive/Tesserae.Lauschwerk.targets" Pack="true" PackagePath="buildTransitive/" />
   </ItemGroup>
 
   <!--
@@ -73,16 +72,5 @@
 
   <Target Name="BundleLauschwerk" BeforeTargets="BeforeBuild" DependsOnTargets="BuildLauschwerkSdk" Inputs="build/bundle-lauschwerk.mjs;models/*.alk;$(LauschwerkSdkPackageDir)/dist/lauschwerk-engine.wasm" Outputs="$(LauschwerkBundleDir)/version.txt">
     <Exec Command="node build/bundle-lauschwerk.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
-  </Target>
-
-  <!--
-    Resolved in a target rather than a static ItemGroup so the glob runs after BundleLauschwerk has
-    produced the files, and hooked on _GetPackageFiles, where NuGet collects Pack="true" items
-    (GenerateNuspec is too late - see tesserae-pdf's csproj for the same note).
-  -->
-  <Target Name="IncludeLauschwerkInPackage" BeforeTargets="_GetPackageFiles" DependsOnTargets="BundleLauschwerk">
-    <ItemGroup>
-      <None Include="$(LauschwerkBundleDir)/**" Pack="true" PackagePath="lauschwerk/" />
-    </ItemGroup>
   </Target>
 </Project>

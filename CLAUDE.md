@@ -39,7 +39,6 @@ Tesserae.Lauschwerk/                    the package
   src/Components/                   the Tesserae components (panels, meters, waveform, enrollment...)
   src/LauschwerkUI.cs                   the component factories (using static Tesserae.Lauschwerk.LauschwerkUI)
   build/bundle-lauschwerk.mjs       stages sdk/packages/lauschwerk/dist into assets/js/lauschwerk
-  buildTransitive/*.targets         copies it, models included, into a consumer's output
 Tesserae.Lauschwerk.Sample/             the gallery: a sidebar of features, one page each
   assets/audio/                     the speech fixtures, synthesized by tools/Lauschwerk.TestAudio
 tests/                              Playwright specs (fake microphone = the fixtures), a static server
@@ -149,11 +148,21 @@ fully qualified, because the enclosing `Tesserae` namespace has a `Require` of i
 classic script, on which the entry's `import` is a syntax error. A failed load is forgotten
 (`_loading = null`) so the next call retries.
 
-**Not a Transpose resource**, for the same reasons as Monaco and pdf.js (see `tps.json`): every `.js`
-resource gets a `<script>` tag, resources are renamed to `.min.js`, and the versioned folder cannot be
-named in a single-level glob. The package carries it under `lauschwerk/` and
-`buildTransitive/Tesserae.Lauschwerk.targets` copies it to `assets/js/lauschwerk/` after the build (`cli.js`
-excluded - it is the Node model downloader, never something a page loads).
+**A copy-through Transpose resource.** `tps.json` declares one group, `lauschwerk`: `assets/js/lauschwerk/**`
+into `assets/js/lauschwerk/`, with `"load": false`. The compiler embeds the folder in the package DLL and
+extracts it into the site of every project that references the package, so every way of building a site gets
+lauschwerk - `dotnet build`, `tps` on its own, and the in-process `Transpose.Compiler.Library` a Curiosity
+workspace compiles its own front-end with. Nothing is packed under `lauschwerk/` and there is no MSBuild target.
+It used to be a `buildTransitive` target that copied the folder after `Build`, which works only where MSBuild
+runs; a site built without it had no `assets/js/lauschwerk` and the first microphone input was a 404. Do not
+bring the target back.
+
+Why a resource is fine here: the group is not a bundle (its name does not end in `.js`) and says `"load":
+false`, so nothing is concatenated, renamed or scripted into index.html; every file ships alone and so is copied
+verbatim under its own name (the chunks import each other, and the SDK loads its worker and worklet, by the names
+npm shipped them under); and `**` finds the `v<version>/` folder without naming the version and keeps each file's
+subfolder. A glob has no exclusion, so `cli.js` (the Node model downloader, never something a page loads) is not
+staged at all: `build/bundle-lauschwerk.mjs` checks it is in `dist` and leaves it there.
 
 ### Models: shipped in the package
 
